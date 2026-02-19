@@ -1,54 +1,62 @@
+<script setup>
+import { ref, onMounted, computed } from "vue";
+
+const props = defineProps({
+  message: {
+    type: String,
+    required: true,
+  },
+  type: {
+    type: String,
+    default: "info", // success | error | warning | info
+  },
+  duration: {
+    type: Number,
+    default: 5000,
+  },
+});
+
+const show = ref(true);
+
+const toastClass = computed(() => {
+  switch (props.type) {
+    case "success":
+      return "alert-success";
+    case "error":
+      return "alert-error";
+    case "warning":
+      return "alert-warning";
+    default:
+      return "alert-info";
+  }
+});
+
+onMounted(() => {
+  setTimeout(() => {
+    show.value = false;
+  }, props.duration);
+});
+</script>
+
 <template>
-  <div class="card flex justify-center">
-    <Toast position="bottom-center" group="bc" @close="onClose">
-      <template #message="slotProps">
-        <div class="flex flex-col items-start flex-auto">
-          <div class="flex items-center gap-2">
-            <Avatar
-              image="https://primefaces.org/cdn/primevue/images/avatar/amyelsner.png"
-              shape="circle"
-            />
-            <span class="font-bold">Amy Elsner</span>
-          </div>
-          <div class="font-medium text-lg my-4">
-            {{ slotProps.message.summary }}
-          </div>
-          <Button
-            size="small"
-            label="Reply"
-            severity="success"
-            @click="onReply()"
-          ></Button>
-        </div>
-      </template>
-    </Toast>
-    <Button @click="showTemplate" label="View" />
-  </div>
+  <transition name="fade">
+    <div v-if="show" class="toast toast-top toast-end z-50">
+      <div class="alert" :class="toastClass">
+        <span>{{ message }}</span>
+      </div>
+    </div>
+  </transition>
 </template>
 
-<script setup>
-import { useToast } from "primevue/usetoast";
-import { ref } from "vue";
-const toast = useToast();
-const visible = ref(false);
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.4s ease;
+}
 
-const showTemplate = () => {
-  if (!visible.value) {
-    toast.add({
-      severity: "success",
-      summary: "Can you send me the report?",
-      group: "bc",
-    });
-    visible.value = true;
-  }
-};
-
-const onReply = () => {
-  toast.removeGroup("bc");
-  visible.value = false;
-};
-
-const onClose = () => {
-  visible.value = false;
-};
-</script>
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+</style>

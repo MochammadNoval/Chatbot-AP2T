@@ -106,7 +106,7 @@ const expandSidebarChat = () => {
         <!-- button minimize chat history bar -->
         <button
           @click="expandSidebarChat"
-          class="absolute -left-4 rounded-full p-2 border border-gray-400/30 shadow-xl bg-mainblue cursor-pointer"
+          class="absolute -left-2 rounded-full p-2 border border-gray-400/30 shadow-xl bg-mainblue cursor-pointer"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

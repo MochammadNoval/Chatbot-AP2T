@@ -1,6 +1,14 @@
 <script setup>
 import CardDashboard from "../components/CardDashboard.vue";
 import CardIndeks from "../components/CardIndeks.vue";
+import {
+  DocumentTextIcon,
+  UserGroupIcon,
+  ChatBubbleBottomCenterIcon,
+  BoltIcon,
+} from "@heroicons/vue/16/solid";
+
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
 </script>
 
 <template>
@@ -25,17 +33,25 @@ import CardIndeks from "../components/CardIndeks.vue";
           title="Total Dokumen"
           value="5"
           desc="5 aktif, 0 dihapus"
+          :icon="DocumentTextIcon"
         />
         <CardDashboard
           title="Total Pengguna"
           value="2"
           desc="Pengguna Terdaftar"
+          :icon="UserGroupIcon"
         />
-        <CardDashboard title="Total Chat" value="7" desc="Sesi Percakapan" />
+        <CardDashboard
+          title="Total Chat"
+          value="7"
+          desc="Sesi Percakapan"
+          :icon="ChatBubbleBottomCenterIcon"
+        />
         <CardDashboard
           title="Respon AI"
           value="1643ms"
           desc="4 Berhasil, 0 gagal"
+          :icon="BoltIcon"
         />
       </div>
       <div class="mt-4 grid grid-cols-2 gap-x-4">
@@ -49,12 +65,14 @@ import CardIndeks from "../components/CardIndeks.vue";
               value="5"
               title="Dokumen Aktif"
               desc="Tersedia untuk diakses"
+              :icon="CheckCircleIcon"
             />
             <CardIndeks
               category="hapus"
               value="0"
               title="Dokumen Dihapus"
               desc="Dapat dipulihkan"
+              :icon="XCircleIcon"
             />
           </div>
         </div>
@@ -67,18 +85,21 @@ import CardIndeks from "../components/CardIndeks.vue";
               value="4"
               title="Respon berhasil"
               desc="AI merespon dengan baik"
+              :icon="CheckCircleIcon"
             />
             <CardIndeks
               category="hapus"
               value="0"
               title="Respon Gagal"
               desc="Perlu perhatian"
+              :icon="XCircleIcon"
             />
             <CardIndeks
               category="rata"
               value="1643ms"
               title="Rata Rata Waktu Respom"
               desc="Kecepatan waktu merespon"
+              :icon="BoltIcon"
             />
           </div>
         </div>
