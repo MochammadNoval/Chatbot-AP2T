@@ -43,6 +43,7 @@ const handleLogout = () => {
           text: "Anda akan segera di arahkan ke halaman login!",
           icon: "success",
         }).then(() => {
+          localStorage.removeItem("access_token");
           router.push("/login");
         });
       }, 2000);

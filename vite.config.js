@@ -10,7 +10,7 @@ export default defineConfig({
     port: 5170, // ⬅️ Opsional, default-nya memang 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:5007",
+        target: "http://localhost:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },

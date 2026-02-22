@@ -1,15 +1,17 @@
 <script setup>
 import { onMounted, ref } from "vue";
-import api from "./../services/Api";
 import { useRouter } from "vue-router";
 import ProgressSpinner from "primevue/progressspinner";
 import { useToast } from "primevue/usetoast";
 import { Toast } from "primevue";
 import { useAuthStores } from "../stores/Auth";
+import { Login } from "../services/AuthServices";
 
+const router = useRouter();
 const authStore = useAuthStores();
 const toast = useToast();
-const router = useRouter();
+const isSubmit = ref(false);
+
 const showPassword = ref(false);
 const form = ref({
   username: "",
@@ -23,23 +25,11 @@ const visiblePassword = () => {
   showPassword.value = !showPassword.value;
 };
 
-onMounted(() => {
-  if (authStore.message) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: authStore.message,
-      life: 2500,
-    });
-  }
-});
-
 const handleLogin = async () => {
   ((errorMessage.value = ""), (loading.value = true));
-
   try {
-    const res = await api.post("/login", {
-      username: form.value.username,
+    const res = await Login({
+      email: form.value.username,
       password: form.value.password,
     });
     toast.add({
@@ -49,12 +39,11 @@ const handleLogin = async () => {
       life: 2500,
     });
 
-    authStore.login(res.data.user);
     authStore.message = null;
-
     setTimeout(() => {
       router.push("/dashboard");
     }, 3000);
+    isSubmit.value = true;
   } catch (error) {
     if (error.response?.status === 401) {
       errorMessage.value = "username atau Password Salah!";
@@ -73,13 +62,7 @@ const handleLogin = async () => {
         life: 5000,
       });
     } else {
-      errorMessage.value = "Terjadi kesalahan, coba lagi";
-      toast.add({
-        severity: "error",
-        summary: "Error",
-        detail: errorMessage.value,
-        life: 5000,
-      });
+      console.error(error);
     }
   } finally {
     loading.value = false;
@@ -211,6 +194,7 @@ const handleLogin = async () => {
           </div>
 
           <button
+            v-if="!isSubmit"
             type="submit"
             class="w-full bg-blue-500 text-white py-2 rounded-xl flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition"
             :disabled="loading"
@@ -227,6 +211,30 @@ const handleLogin = async () => {
               class="flex gap-x-5 items-center border border-red-300"
               v-else
             >
+              <p>Masuk</p>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6 ms-1.5"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"
+                />
+              </svg>
+            </template>
+          </button>
+
+          <button
+            v-else
+            class="w-full bg-blue-500 text-white py-2 rounded-xl flex items-center justify-center cursor-not-allowed hover:bg-blue-600 transition"
+            disabled
+          >
+            <template class="flex items-center">
               <p>Masuk</p>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
