@@ -1,19 +1,10 @@
 import axios from "axios";
+import api from "./Api";
 
-export async function uploadFileAxios(file) {
+export async function getFiles() {
   try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await axios.post("/api/files/upload", formData, {
-      onUploadProgress: (e) => {
-        if (e.total) {
-          const percent = Math.round((e.loaded * 100) / e.total);
-        }
-      },
-    });
-
-    return response; // kalau sukses
+    const response = await api.get("/files");
+    return response.data;
   } catch (error) {
     // handling error
     let fileMessage = "Upload gagal, Silahkan coba lagi!";
@@ -32,11 +23,17 @@ export async function uploadFileAxios(file) {
   }
 }
 
-export async function getFiles() {
+export async function uploadFileAxios(formData) {
   try {
-    const response = await axios.get("/api/files");
+    const response = await api.post("/files/upload", formData, {
+      onUploadProgress: (e) => {
+        if (e.total) {
+          const percent = Math.round((e.loaded * 100) / e.total);
+        }
+      },
+    });
 
-    return response.data;
+    return response; // kalau sukses
   } catch (error) {
     // handling error
     let fileMessage = "Upload gagal, Silahkan coba lagi!";

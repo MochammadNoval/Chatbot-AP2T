@@ -23,9 +23,8 @@ const fileInput = ref(null);
 const emit = defineEmits(["close", "upload"]);
 
 const formData = ref({
-  fileName: "",
-  category: "",
-  tags: "",
+  filename: "",
+  tag_ids: "",
   file: null,
 });
 
@@ -48,7 +47,6 @@ const onDrop = (event) => {
   if (!files.length) return;
 
   formData.value.file = files[0]; // ambil file pertama
-  console.log("File dropped:", files[0]);
 };
 
 const handleUpload = () => {
@@ -74,12 +72,17 @@ const handleUpload = () => {
     });
     return;
   }
-  uploadToServer(file);
+  uploadToServer();
 };
 
-const uploadToServer = async (file) => {
+const uploadToServer = async () => {
   try {
-    const res = await uploadFileAxios(file);
+    const dataFile = new FormData();
+    dataFile.append("file", formData.value.file);
+    dataFile.append("filename", formData.value.filename);
+    dataFile.append("tag_ids", JSON.stringify([1]));
+
+    const res = await uploadFileAxios(dataFile);
     toast.add({
       severity: "success",
       summary: "Success",
@@ -110,7 +113,7 @@ const handleFileChange = (event) => {
   const file = event.target.files?.[0];
   if (file) {
     formData.value.file = file;
-    formData.value.fileName = file.name;
+    formData.value.filename = file.name;
   }
 };
 
@@ -241,7 +244,7 @@ const closeModal = () => {
           Nama File
         </label>
         <input
-          v-model="formData.fileName"
+          v-model="formData.filename"
           type="text"
           placeholder="Masukkan nama file"
           class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

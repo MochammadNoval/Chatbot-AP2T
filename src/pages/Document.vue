@@ -37,88 +37,18 @@ const search = (event) => {
 };
 
 let documents = ref([]);
+let tags = ref([]);
 
 onMounted(async () => {
   try {
     const res = await getFiles();
-    documents.value = res;
+    // const resTags = await getTags()
+    documents.value = res.files;
+    console.log(documents.value);
   } catch (error) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: error.message,
-      life: 3000,
-    });
+    console.error(error);
   }
 });
-
-// Data untuk datatable dokumen
-// const documents = ref([
-//   {
-//     id: 1,
-//     fileName: "Proposal Proyek 2026.pdf",
-//     category: "Proposal",
-//     tags: ["Proyek", "Important"],
-//     size: "2.4 MB",
-//     date: "2026-02-08",
-//   },
-//   {
-//     id: 2,
-//     fileName: "Laporan Kuartalan Q1.docx",
-//     category: "Laporan",
-//     tags: ["Laporan", "Finance"],
-//     size: "1.8 MB",
-//     date: "2026-02-07",
-//   },
-//   {
-//     id: 3,
-//     fileName: "Kontrak Kerjasama.pdf",
-//     category: "Kontrak",
-//     tags: ["Legal", "Important"],
-//     size: "945 KB",
-//     date: "2026-02-05",
-//   },
-//   {
-//     id: 4,
-//     fileName: "Data Analisis Pasar.xlsx",
-//     category: "Analisis",
-//     tags: ["Market", "Data"],
-//     size: "3.2 MB",
-//     date: "2026-02-03",
-//   },
-//   {
-//     id: 5,
-//     fileName: "Panduan Pengguna Aplikasi.pdf",
-//     category: "Dokumentasi",
-//     tags: ["Guide", "Help"],
-//     size: "5.6 MB",
-//     date: "2026-01-30",
-//   },
-//   {
-//     id: 6,
-//     fileName: "Rencana Strategis 2026.pdf",
-//     category: "Strategi",
-//     tags: ["Planning", "Management"],
-//     size: "2.1 MB",
-//     date: "2026-02-09",
-//   },
-//   {
-//     id: 7,
-//     fileName: "Budget Allocation Q2.xlsx",
-//     category: "Budget",
-//     tags: ["Finance", "Planning"],
-//     size: "1.5 MB",
-//     date: "2026-02-08",
-//   },
-//   {
-//     id: 8,
-//     fileName: "Meeting Minutes Feb 2026.docx",
-//     category: "Meeting",
-//     tags: ["Minutes", "Important"],
-//     size: "856 KB",
-//     date: "2026-02-10",
-//   },
-// ]);
 
 // Function untuk preview dokumen
 const previewDocument = (doc) => {
@@ -255,7 +185,7 @@ const handleUploadDocument = async () => {
                     :key="tag"
                     class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs"
                   >
-                    {{ tag }}
+                    {{ tag.name }}
                   </span>
                 </div>
               </td>
@@ -263,7 +193,7 @@ const handleUploadDocument = async () => {
                 {{ (document.filesize / 1024 / 1024).toFixed(2) }} Mb
               </td>
               <td class="px-6 py-2 text-sm text-gray-700">
-                {{ new Date(document.upload_time).toLocaleDateString("id-ID") }}
+                {{ new Date(document.created_at).toLocaleDateString("id-ID") }}
               </td>
               <td class="px-6 py-2 text-center">
                 <div class="flex justify-center gap-2">
