@@ -190,7 +190,7 @@ const handleUploadDocument = async () => {
                 </div>
               </td>
               <td class="px-6 py-2 text-sm text-gray-700">
-                {{ (document.filesize / 1024 / 1024).toFixed(2) }} Mb
+                {{ (document.size / 1024 / 1024).toFixed(2) }} Mb
               </td>
               <td class="px-6 py-2 text-sm text-gray-700">
                 {{ new Date(document.created_at).toLocaleDateString("id-ID") }}

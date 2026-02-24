@@ -49,6 +49,13 @@ const onDrop = (event) => {
   formData.value.file = files[0]; // ambil file pertama
 };
 
+const file = formData.value.file;
+
+// Handle file selection
+const handleFileChange = (event) => {
+  formData.value.file = event.target.files[0];
+};
+
 const handleUpload = () => {
   isLoading.value = true;
   if (!formData.value.file) {
@@ -61,9 +68,7 @@ const handleUpload = () => {
     return; // ⬅️ PENTING: hentikan function
   }
 
-  const file = formData.value.file;
-
-  if (file.size > 5 * 1024 * 1024) {
+  if (formData.value.file.size > 5 * 1024 * 1024) {
     toast.add({
       severity: "error",
       summary: "Error",
@@ -107,15 +112,6 @@ const uploadToServer = async () => {
 };
 
 const isLoading = ref(false);
-
-// Handle file selection
-const handleFileChange = (event) => {
-  const file = event.target.files?.[0];
-  if (file) {
-    formData.value.file = file;
-    formData.value.filename = file.name;
-  }
-};
 
 // Handle upload
 // const handleUpload = async () => {
@@ -199,7 +195,10 @@ const closeModal = () => {
     <div class="p-6 space-y-4">
       <!-- File Input -->
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">
+        <label
+          class="block text-sm font-semibold text-gray-700 mb-2"
+          for="uploadFile"
+        >
           Pilih File
         </label>
         <div
@@ -211,13 +210,15 @@ const closeModal = () => {
           @dragover.prevent="onDragOver"
           @dragleave.prevent="onDragLeave"
           @drop.prevent="onDrop"
-          @click=""
+          @click="fileInput.click()"
         >
           <input
+            ref="fileInput"
             type="file"
             @change="handleFileChange"
             class="w-full opacity-0 absolute cursor-pointer"
             aria-label="Upload file"
+            id="uploadFile"
           />
           <div class="pointer-events-none">
             <p class="text-gray-600 text-sm font-semibold">
