@@ -13,7 +13,7 @@ import { useAuthStores } from "../stores/Auth";
 
 const routes = [
   {
-    path: "/login",
+    path: "/",
     name: "login",
     component: AuthLayout,
     children: [{ path: "", component: FormLogin }],
@@ -71,7 +71,7 @@ router.beforeEach((to, from, next) => {
   const auth = useAuthStores();
   if (to.meta.requiresAuth && !token) {
     auth.setMessage("Silakan login terlebih dahulu");
-    next("/login");
+    next("/");
   } else {
     next();
   }

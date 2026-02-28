@@ -44,7 +44,7 @@ const handleLogout = () => {
           icon: "success",
         }).then(() => {
           localStorage.removeItem("access_token");
-          router.push("/login");
+          router.push("/");
         });
       }, 2000);
       useAuth.setLoading(true);

@@ -2,7 +2,11 @@
 
 <template>
   <div>
-    <form action="" method="POST" class="w-full mt-2 mb-4">
+    <form
+      action=""
+      method="POST"
+      class="bg-mainblue text-black w-full mt-2 mb-4 rounded-lg"
+    >
       <label
         for="searchChat"
         class="border border-gray-400/60 rounded-lg px-2 py-1 w-full flex gap-x-1 items-center"
@@ -25,7 +29,7 @@
           type="text"
           name=""
           id=""
-          class="text-sm text-gray-400 py-1 px-1 focus:outline-none focus:ring-0 focus:border-transparent"
+          class="text-sm text-gray-400 py-1 px-1 focus:outline-none focus:ring-0 focus:border-transparent w-full"
           placeholder="Cari chat..."
         />
       </label>

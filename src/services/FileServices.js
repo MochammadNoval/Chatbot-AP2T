@@ -55,8 +55,7 @@ export async function uploadFileAxios(formData) {
 export async function updateFiles(id, payload) {
   try {
     const response = await axios.put(`/api/files/${id}`, payload);
-    console.log(id);
-    // return response.data;
+    return response.data;
   } catch (error) {
     // handling error
     let fileMessage = "Upload gagal, Silahkan coba lagi!";
