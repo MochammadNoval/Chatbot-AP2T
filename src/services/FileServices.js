@@ -1,4 +1,4 @@
-import axios from "axios";
+import { handleApiError } from "../utils/MessageError";
 import api from "./Api";
 
 export async function getFiles() {
@@ -54,7 +54,7 @@ export async function uploadFileAxios(formData) {
 
 export async function updateFiles(id, payload) {
   try {
-    const response = await axios.put(`/api/files/${id}`, payload);
+    const response = await api.put(`/files/${id}`, payload);
     return response.data;
   } catch (error) {
     // handling error
@@ -71,5 +71,15 @@ export async function updateFiles(id, payload) {
         "Aplikasi mengalami gangguan sementara, Silahkan coba beberapa saat kemudian!";
     }
     throw new Error(fileMessage); // lempar lagi biar bisa ditangkap di component
+  }
+}
+
+export async function deleteFile(id) {
+  try {
+    const response = await api.delete(`/files/${id}`);
+    return response.data;
+  } catch (error) {
+    const message = handleApiError(error, "deleteFile");
+    throw new Error(message);
   }
 }

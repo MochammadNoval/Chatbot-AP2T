@@ -12,7 +12,7 @@ function handleApiError(error, operation = "Operation") {
   if (error.response) {
     // Server merespons dengan status code error
     const { status, data } = error.response;
-    const serverMessage = data.detail || "Server error";
+    const serverMessage = data || "Server error";
     console.error(`[${operation}] Server error (${status}):`, data);
     return serverMessage;
   }

@@ -68,6 +68,7 @@ const handleUpdateGroupTags = (id) => {
 const handleDeleteGroupTags = async (id) => {
   idTags.value = null;
   idTagsGroups.value = id;
+  console.log(idTagsGroups.value);
 
   try {
     const result = await Swal.fire({
@@ -82,7 +83,7 @@ const handleDeleteGroupTags = async (id) => {
     });
 
     if (result.isConfirmed) {
-      await deleteGroupTags(id); // ✅ panggil function API delete (BUKAN dirinya sendiri)
+      await deleteGroupTags(id);
       await initialize();
 
       Swal.fire({
@@ -92,11 +93,10 @@ const handleDeleteGroupTags = async (id) => {
       });
     }
   } catch (error) {
-    console.log(error);
     useAuth.setLoading(false);
     Swal.fire({
       title: "Gagal!",
-      text: "Terjadi kesalahan saat menghapus data",
+      text: error,
       icon: "error",
     });
   }
@@ -176,22 +176,22 @@ const handleDeleteGroupTags = async (id) => {
             class="flex items-center gap-x-2 rounded-lg p-2 bg-slate-200/80 border border-gray-300/80"
           >
             <p class="text-black">2024</p>
-            <PencilIcon class="size-4 text-gray-400" />
-            <TrashIcon class="size-4 text-gray-400" />
+            <PencilIcon class="size-4 text-green-500" />
+            <TrashIcon class="size-4 text-red-500" />
           </div>
           <div
             class="flex items-center gap-x-2 rounded-lg p-2 bg-slate-200/80 border border-gray-300/80"
           >
             <p class="text-black">2024</p>
-            <PencilIcon class="size-4 text-gray-400" />
-            <TrashIcon class="size-4 text-gray-400" />
+            <PencilIcon class="size-4 text-green-500" />
+            <TrashIcon class="size-4 text-red-500" />
           </div>
           <div
             class="flex items-center gap-x-2 rounded-lg p-2 bg-slate-200/80 border border-gray-300/80"
           >
             <p class="text-black">2024</p>
-            <PencilIcon class="size-4 text-gray-400" />
-            <TrashIcon class="size-4 text-gray-400" />
+            <PencilIcon class="size-4 text-green-500" />
+            <TrashIcon class="size-4 text-red-500" />
           </div>
         </section>
       </div>

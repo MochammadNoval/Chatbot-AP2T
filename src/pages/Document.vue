@@ -4,6 +4,7 @@ import Modal from "../components/Modal.vue";
 import UploadDocumentModal from "../components/UploadDocumentModal.vue";
 import { useToast } from "primevue/usetoast";
 import { Toast } from "primevue";
+import Swal from "sweetalert2";
 
 import {
   FunnelIcon,
@@ -16,7 +17,7 @@ import {
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref } from "vue";
-import { getFiles, updateFiles } from "../services/FileServices";
+import { deleteFile, getFiles, updateFiles } from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
 const useAuth = useAuthStores();
 
@@ -39,15 +40,24 @@ const search = (event) => {
 let documents = ref([]);
 let tags = ref([]);
 
-onMounted(async () => {
+const initialize = async () => {
   try {
+    useAuth.setLoading(true);
     const res = await getFiles();
-    // const resTags = await getTags()
     documents.value = res.files;
-    console.log(documents.value);
+    useAuth.setLoading(false);
   } catch (error) {
-    console.error(error);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
+    });
   }
+};
+
+onMounted(async () => {
+  initialize();
 });
 
 // Function untuk preview dokumen
@@ -69,24 +79,34 @@ const downloadDocument = (doc) => {
 };
 
 // Function untuk hapus dokumen
-const deleteDocument = (id) => {
-  if (confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) {
-    documents.value = documents.value.filter((doc) => doc.id !== id);
-    alert("Dokumen berhasil dihapus");
-  }
-};
-
-// Function untuk handle upload dokumen
-const handleUploadDocument = async () => {
+const handleDeleteFile = async (id) => {
   try {
-    const res = await getFiles();
-    documents.value = res;
+    const result = await Swal.fire({
+      title: "Hapus Data?",
+      text: "Apakah anda yakin ingin hapus dokumen?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      cancelButtonText: "Batal",
+      confirmButtonText: "Ya, Hapus!",
+    });
+
+    if (result.isConfirmed) {
+      await deleteFile(id);
+      await initialize();
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Dokumen berhasil dihapus!",
+        icon: "success",
+      });
+    }
   } catch (error) {
-    toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: error.message || "Gagal memuat dokumen",
-      life: 3000,
+    useAuth.setLoading(false);
+    Swal.fire({
+      title: "Gagal!",
+      text: error,
+      icon: "error",
     });
   }
 };
@@ -98,7 +118,7 @@ const handleUploadDocument = async () => {
     <UploadDocumentModal
       :isOpen="showUploadModal"
       @close="showUploadModal = false"
-      @upload="handleUploadDocument"
+      @upload="initialize"
     />
 
     <Modal :isOpen="showModal" @close="showModal = false" :type="modalType" />
@@ -226,7 +246,7 @@ const handleUploadDocument = async () => {
 
                   <!-- Button Hapus -->
                   <button
-                    @click="deleteDocument(document.id)"
+                    @click="handleDeleteFile(document.id)"
                     class="p-2 cursor-pointer text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                     title="Hapus"
                   >

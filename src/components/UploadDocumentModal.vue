@@ -94,8 +94,8 @@ const uploadToServer = async () => {
       detail: "File berhasil diupload",
       life: 3000,
     });
-    isLoading.value = false;
 
+    isLoading.value = false;
     setTimeout(() => {
       emit("upload");
       closeModal();
@@ -112,46 +112,6 @@ const uploadToServer = async () => {
 };
 
 const isLoading = ref(false);
-
-// Handle upload
-// const handleUpload = async () => {
-//   if (!formData.value.fileName || !formData.value.category) {
-//     toast.add({
-//       severity: "error",
-//       summary: "Error",
-//       detail: "Mohon isi nama file dan kategori",
-//       life: 3000,
-//     });
-//     return;
-//   }
-
-//   isLoading.value = true;
-//   try {
-//     // Simulasi upload
-//     await new Promise((resolve) => setTimeout(resolve, 1000));
-
-//     const newDocument = {
-//       id: Date.now(),
-//       fileName: formData.value.fileName,
-//       category: formData.value.category,
-//       tags: formData.value.tags
-//         ? formData.value.tags.split(",").map((tag) => tag.trim())
-//         : [],
-//       size: formData.value.file
-//         ? (formData.value.file.size / (1024 * 1024)).toFixed(2) + " MB"
-//         : "0 KB",
-//       date: new Date().toISOString().split("T")[0],
-//       url: "#",
-//     };
-
-//     emit("upload", newDocument);
-//     closeModal();
-//   } catch (error) {
-//     alert("Gagal upload dokumen: " + error.message);
-//   } finally {
-//     isLoading.value = false;
-//   }
-// };
 
 // Reset and close modal
 
