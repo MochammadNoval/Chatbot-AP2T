@@ -139,6 +139,22 @@ export async function getTagGroups() {
 
     return response.data;
   } catch (error) {
+    const message = handleApiError(error, "getTagGroups");
+    throw new Error(message);
+  }
+}
+
+export async function getTags() {
+  try {
+    const response = await api.get("/tags");
+
+    // Validasi response
+    if (!response.data) {
+      throw new Error("Response dari server tidak valid");
+    }
+
+    return response.data;
+  } catch (error) {
     const message = handleApiError(error, "getTag");
     throw new Error(message);
   }

@@ -1,13 +1,11 @@
 <script setup>
-import { ref } from "vue";
-import {
-  PlusCircleIcon,
-  XCircleIcon,
-  XMarkIcon,
-} from "@heroicons/vue/24/outline";
+import { onMounted, ref } from "vue";
+import { PlusCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
 import { ProgressSpinner, Toast, useToast } from "primevue";
 import { uploadFileAxios } from "../services/FileServices";
 import { useRouter } from "vue-router";
+import CustomMultiSelect from "./CustomMultiSelect.vue";
+import { getTags } from "../services/Tags";
 
 defineProps({
   isOpen: {
@@ -15,6 +13,38 @@ defineProps({
     required: true,
   },
 });
+
+const tag = ref([]);
+const selectedTag = ref([]);
+
+onMounted(async () => {
+  try {
+    tag.value = await getTags();
+    // const resTag = await getTag();
+    // groupTags.value = resTagGroups;
+    // tags.value = resTag.value;
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
+    });
+  }
+});
+
+const cekSelectedTag = () => {
+  console.log(selectedTag.value);
+  console.log(selectedTag.value.length);
+};
+
+const clearAllTags = () => {
+  selectedTag.value = [];
+};
+
+const removeTag = (tagId) => {
+  selectedTag.value = selectedTag.value.filter((id) => id !== tagId);
+};
 
 const router = useRouter();
 const toast = useToast();
@@ -34,7 +64,6 @@ const onDragOver = (event) => {
 };
 
 const onDragLeave = (event) => {
-  // supaya tidak false ketika pindah ke child element
   if (event.currentTarget.contains(event.relatedTarget)) return;
   isDragging.value = false;
 };
@@ -85,7 +114,7 @@ const uploadToServer = async () => {
     const dataFile = new FormData();
     dataFile.append("file", formData.value.file);
     dataFile.append("filename", formData.value.filename);
-    dataFile.append("tag_ids", JSON.stringify([1]));
+    dataFile.append("tag_ids", JSON.stringify(selectedTag.value || []));
 
     const res = await uploadFileAxios(dataFile);
     toast.add({
@@ -122,6 +151,7 @@ const closeModal = () => {
     tags: "",
     file: null,
   };
+  selectedTag.value = 0;
   emit("close");
 };
 </script>
@@ -214,14 +244,57 @@ const closeModal = () => {
 
       <!-- Tags -->
       <div>
+        <!-- Selected tags display -->
+        <div v-if="selectedTag.length > 0" class="mb-3">
+          <div class="flex flex-wrap gap-2">
+            <div
+              v-for="selected in selectedTag"
+              :key="selected"
+              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2"
+            >
+              {{ tag.find((t) => t.id === selected)?.name || selected }}
+              <button
+                @click="removeTag(selected)"
+                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-blue-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              @click="clearAllTags"
+              class="ml-auto text-xs cursor-pointer text-gray-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
+          </div>
+        </div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">
-          Tags (pisahkan dengan koma)
+          Pilih Tags
         </label>
-        <input
-          v-model="formData.tags"
-          type="text"
-          placeholder="Contoh: penting, finance, project"
-          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        <CustomMultiSelect
+          @change="cekSelectedTag"
+          v-model="selectedTag"
+          :options="tag"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags..."
+          :multiple="true"
+          :hideSelectedItems="true"
         />
       </div>
     </div>
@@ -254,3 +327,5 @@ const closeModal = () => {
     </div>
   </div>
 </template>
+
+<style scoped></style>

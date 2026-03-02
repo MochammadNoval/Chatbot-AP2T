@@ -24,6 +24,9 @@ export async function getFiles() {
 }
 
 export async function uploadFileAxios(formData) {
+  console.log(formData.get("file"));
+  console.log(formData.get("filename"));
+  console.log(formData.get("tag_ids"));
   try {
     const response = await api.post("/files/upload", formData, {
       onUploadProgress: (e) => {
