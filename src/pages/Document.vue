@@ -17,7 +17,12 @@ import {
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref } from "vue";
-import { deleteFile, getFiles, updateFiles } from "../services/FileServices";
+import {
+  deleteFile,
+  getFiles,
+  updateFiles,
+  downloadFile,
+} from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
 const useAuth = useAuthStores();
 
@@ -73,11 +78,6 @@ const editDocument = async (id) => {
   const res = await updateFiles(id);
 };
 
-// Function untuk download dokumen
-const downloadDocument = (doc) => {
-  alert(`Download: ${doc.fileName}`);
-};
-
 // Function untuk hapus dokumen
 const handleDeleteFile = async (id) => {
   try {
@@ -107,6 +107,20 @@ const handleDeleteFile = async (id) => {
       title: "Gagal!",
       text: error,
       icon: "error",
+    });
+  }
+};
+
+const handledownloadFile = async (id) => {
+  console.log(id);
+  try {
+    const res = await downloadFile(id);
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
     });
   }
 };
@@ -237,7 +251,7 @@ const handleDeleteFile = async (id) => {
 
                   <!-- Button Download -->
                   <button
-                    @click="downloadDocument(document)"
+                    @click="handledownloadFile(document.id)"
                     class="p-2 cursor-pointer text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
                     title="Download"
                   >

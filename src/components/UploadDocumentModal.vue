@@ -78,8 +78,6 @@ const onDrop = (event) => {
   formData.value.file = files[0]; // ambil file pertama
 };
 
-const file = formData.value.file;
-
 // Handle file selection
 const handleFileChange = (event) => {
   formData.value.file = event.target.files[0];

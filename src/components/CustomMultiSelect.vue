@@ -165,7 +165,7 @@ const closeDropdown = () => {
           <input
             type="checkbox"
             :checked="isSelected(option[optionValue])"
-            class="w-4 h-4 cursor-pointer"
+            class="w-4 h-4 cursor-pointer text-white accent-blue-500"
             @click.stop="toggleOption(option[optionValue])"
           />
           <span class="text-black">{{ option[optionLabel] }}</span>
@@ -211,9 +211,3 @@ const closeDropdown = () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-:deep(input[type="checkbox"]) {
-  accent-color: #3b82f6;
-}
-</style>

@@ -86,3 +86,49 @@ export async function deleteFile(id) {
     throw new Error(message);
   }
 }
+
+export async function downloadFile(id) {
+  try {
+    const response = await api.get(`/files/${id}/download`, {
+      responseType: "blob",
+    });
+
+    // ambil filename dari header Content-Disposition
+    const contentDisposition = response.headers["content-disposition"];
+    let filename = "file";
+
+    if (contentDisposition) {
+      // Handle UTF-8 encoded dan regular filenames
+      const filenameMatch = contentDisposition.match(
+        /filename\*=UTF-8''(.+?)(?:;|$)|filename="?([^";\n]+)"?/,
+      );
+      if (filenameMatch?.[1]) {
+        filename = decodeURIComponent(filenameMatch[1]);
+      } else if (filenameMatch?.[2]) {
+        filename = filenameMatch[2];
+      }
+    }
+
+    // buat blob dengan content-type yang sesuai
+    const blob = new Blob([response.data], {
+      type: response.headers["content-type"] || "application/octet-stream",
+    });
+    const url = window.URL.createObjectURL(blob);
+
+    // buat element link dan trigger download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+
+    // bersihkan
+    setTimeout(() => {
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    }, 100);
+  } catch (error) {
+    const message = handleApiError(error, "downloadFile");
+    throw new Error(message);
+  }
+}
