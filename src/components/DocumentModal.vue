@@ -1,28 +1,80 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { PlusCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
 import { ProgressSpinner, Toast, useToast } from "primevue";
-import { uploadFileAxios } from "../services/FileServices";
+import {
+  getFilesById,
+  updateFiles,
+  uploadFileAxios,
+} from "../services/FileServices";
 import { useRouter } from "vue-router";
 import CustomMultiSelect from "./CustomMultiSelect.vue";
 import { getTags } from "../services/Tags";
+import { useAuthStores } from "../stores/Auth";
+import Swal from "sweetalert2";
 
-defineProps({
+const useAuth = useAuthStores();
+
+const props = defineProps({
   isOpen: {
     type: Boolean,
+    required: true,
+  },
+  idDocument: {
+    type: Number,
+    required: true,
+  },
+  type: {
+    type: String,
     required: true,
   },
 });
 
 const tag = ref([]);
 const selectedTag = ref([]);
+const nameFileForPlaceholder = ref("");
+const fileById = ref("");
+const listTagInFile = ref([]);
+const isLoading = ref(false);
+const toast = useToast();
+const isDragging = ref(false);
+const fileInput = ref(null);
+const emit = defineEmits(["close", "upload", "completed"]);
 
-onMounted(async () => {
+const removeTag = (tagId) => {
+  const target =
+    props.type === "UploadDocument"
+      ? selectedTag
+      : props.type === "editDocument"
+        ? listTagInFile
+        : null;
+
+  if (!target) return;
+
+  target.value = target.value.filter((id) => id !== tagId);
+};
+
+const clearAllTags = () => {
+  selectedTag.value = [];
+  listTagInFile.value = [];
+};
+
+const formData = ref({
+  filename: "",
+  tag_ids: "",
+  file: null,
+});
+
+watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
+  if (isOpen !== true || !id) return;
+
   try {
+    useAuth.setLoading(true);
+    fileById.value = await getFilesById(id);
+    nameFileForPlaceholder.value = fileById.value.filename;
     tag.value = await getTags();
-    // const resTag = await getTag();
-    // groupTags.value = resTagGroups;
-    // tags.value = resTag.value;
+    listTagInFile.value = fileById.value.tags;
+    useAuth.setLoading(false);
   } catch (error) {
     toast.add({
       severity: "error",
@@ -33,29 +85,17 @@ onMounted(async () => {
   }
 });
 
-const cekSelectedTag = () => {
-  console.log(selectedTag.value);
-  console.log(selectedTag.value.length);
-};
-
-const clearAllTags = () => {
-  selectedTag.value = [];
-};
-
-const removeTag = (tagId) => {
-  selectedTag.value = selectedTag.value.filter((id) => id !== tagId);
-};
-
-const router = useRouter();
-const toast = useToast();
-const isDragging = ref(false);
-const fileInput = ref(null);
-const emit = defineEmits(["close", "upload"]);
-
-const formData = ref({
-  filename: "",
-  tag_ids: "",
-  file: null,
+onMounted(async () => {
+  try {
+    tag.value = await getTags();
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
+    });
+  }
 });
 
 const onDragOver = (event) => {
@@ -83,8 +123,68 @@ const handleFileChange = (event) => {
   formData.value.file = event.target.files[0];
 };
 
+const handleUpdate = async () => {
+  console.log(listTagInFile.value);
+
+  try {
+    const result = await Swal.fire({
+      title: "Update Dokumen?",
+      text: "Apakah anda yakin ingin update dokumen?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      cancelButtonText: "Batal",
+      confirmButtonText: "Ya, Update!",
+    });
+
+    if (result.isConfirmed) {
+      const tagIds = listTagInFile.value
+        .map((tag) => (typeof tag === "object" ? tag.id : tag))
+        .filter((id) => id !== null && id !== undefined)
+        .map(Number);
+
+      await updateFiles(props.idDocument, {
+        filename: formData.value.filename
+          ? formData.value.filename
+          : nameFileForPlaceholder.value,
+        tag_ids: tagIds,
+      });
+
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Dokumen berhasil di update!",
+        icon: "success",
+      });
+
+      emit("completed");
+    }
+  } catch (error) {
+    useAuth.setLoading(false);
+
+    Swal.fire({
+      title: "Gagal!",
+      text: error.message,
+      icon: "error",
+    });
+  }
+};
+
+const getDocumentById = async (id) => {
+  try {
+    const res = await getFilesById(id);
+    nameFileForPlaceholder.value = res.filename;
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
+    });
+  }
+};
+
 const handleUpload = () => {
-  isLoading.value = true;
   if (!formData.value.file) {
     toast.add({
       severity: "warn",
@@ -104,6 +204,7 @@ const handleUpload = () => {
     });
     return;
   }
+  isLoading.value = true;
   uploadToServer();
 };
 
@@ -124,7 +225,7 @@ const uploadToServer = async () => {
 
     isLoading.value = false;
     setTimeout(() => {
-      emit("upload");
+      emit("completed");
       closeModal();
     }, 2000);
   } catch (err) {
@@ -138,10 +239,7 @@ const uploadToServer = async () => {
   }
 };
 
-const isLoading = ref(false);
-
 // Reset and close modal
-
 const closeModal = () => {
   formData.value = {
     fileName: "",
@@ -157,20 +255,24 @@ const closeModal = () => {
 <template>
   <!-- Modal Backdrop -->
   <div
-    v-if="isOpen"
+    v-if="props.isOpen"
     class="fixed inset-0 bg-black/30 bg-opacity-10 z-40 transition-opacity"
     @click="closeModal"
   ></div>
 
   <!-- Modal -->
   <div
-    v-if="isOpen"
+    v-if="props.isOpen"
     class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-scroll"
   >
     <Toast />
     <!-- Modal Header -->
     <div class="flex items-center justify-between p-6 border-b border-gray-200">
-      <h2 class="text-xl font-bold text-gray-900">Upload Dokumen</h2>
+      <h2 class="text-xl font-bold text-gray-900">
+        {{
+          props.type === "UploadDocument" ? "Upload Document" : "Edit Document"
+        }}
+      </h2>
       <button
         @click="closeModal"
         class="text-gray-400 hover:text-gray-600 transition-colors"
@@ -179,8 +281,8 @@ const closeModal = () => {
       </button>
     </div>
 
-    <!-- Modal Body -->
-    <div class="p-6 space-y-4">
+    <!-- Modal Upload Document Body -->
+    <div class="p-6 space-y-4" v-if="props.type === 'UploadDocument'">
       <!-- File Input -->
       <div>
         <label
@@ -227,7 +329,6 @@ const closeModal = () => {
         </div>
       </div>
 
-      <!-- File Name -->
       <div>
         <label class="block text-sm font-semibold text-gray-700 mb-2">
           Nama File
@@ -281,12 +382,84 @@ const closeModal = () => {
             </button>
           </div>
         </div>
+
         <label class="block text-sm font-semibold text-gray-700 mb-2">
           Pilih Tags
         </label>
         <CustomMultiSelect
-          @change="cekSelectedTag"
           v-model="selectedTag"
+          :options="tag"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags..."
+          :multiple="true"
+          :hideSelectedItems="true"
+        />
+      </div>
+    </div>
+
+    <!-- Modal Edit Document Body -->
+    <div class="p-6 space-y-4" v-if="props.type === 'editDocument'">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Nama File
+        </label>
+        <input
+          v-model="formData.filename"
+          type="text"
+          :placeholder="nameFileForPlaceholder"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <!-- Tags -->
+      <div>
+        <!-- Selected tags display -->
+        <div v-if="listTagInFile" class="mb-3">
+          <div class="flex flex-wrap gap-2">
+            <div
+              v-for="listTag in listTagInFile"
+              :key="listTag"
+              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2"
+            >
+              {{ tag.find((t) => t.id === listTag)?.name || listTag.name }}
+              <button
+                @click="removeTag(listTag)"
+                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-blue-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              @click="clearAllTags"
+              class="ml-auto text-xs cursor-pointer text-gray-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
+          </div>
+        </div>
+
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Pilih Tags
+        </label>
+        <CustomMultiSelect
+          @change="listTagInFile"
+          v-model="listTagInFile"
           :options="tag"
           optionLabel="name"
           optionValue="id"
@@ -306,7 +479,7 @@ const closeModal = () => {
         Batal
       </button>
       <button
-        @click="handleUpload()"
+        @click="props.type === 'editDocument' ? handleUpdate() : handleUpload()"
         :disabled="isLoading"
         class="px-4 py-2 flex gap-x-2 items-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
       >
@@ -319,7 +492,7 @@ const closeModal = () => {
         />
         <div v-else class="flex gap-x-2 items-center">
           <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
-          <p>Upload</p>
+          <p>{{ props.type === "editDocument" ? "Update" : "upload" }}</p>
         </div>
       </button>
     </div>

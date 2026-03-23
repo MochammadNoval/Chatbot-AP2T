@@ -114,7 +114,7 @@ const handleLogin = async () => {
 
               <input
                 id="email"
-                type="text"
+                type="email"
                 placeholder="nama@email.com"
                 v-model="form.username"
                 required

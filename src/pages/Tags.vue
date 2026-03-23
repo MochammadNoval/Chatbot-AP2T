@@ -4,11 +4,7 @@ import { PencilIcon, BookmarkIcon } from "@heroicons/vue/24/solid";
 import InputSearch from "../components/InputSearch.vue";
 import { onMounted, ref } from "vue";
 import ModalTags from "../components/ModalTags.vue";
-import {
-  deleteGroupTags,
-  getTagGroups,
-  updateGroupTags,
-} from "../services/Tags";
+import { deleteGroupTags, getTagGroups } from "../services/Tags";
 import { useToast } from "primevue";
 import { useAuthStores } from "../stores/Auth";
 import Swal from "sweetalert2";
@@ -16,7 +12,6 @@ import Swal from "sweetalert2";
 const showModal = ref(false);
 const modalType = ref("");
 const groupTags = ref([]);
-const tags = ref([]);
 const useAuth = useAuthStores();
 const idTags = ref(null);
 const idTagsGroups = ref(null);
@@ -38,7 +33,7 @@ const initialize = async () => {
     toast.add({
       severity: "error",
       summary: "Error",
-      detail: error.message || "Gagal memuat dokumen",
+      detail: "Gagal memuat dokumen",
       life: 3000,
     });
   }

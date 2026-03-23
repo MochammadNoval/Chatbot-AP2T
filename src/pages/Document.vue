@@ -1,9 +1,7 @@
 <script setup>
 import InputSearch from "../components/InputSearch.vue";
-import Modal from "../components/Modal.vue";
-import UploadDocumentModal from "../components/UploadDocumentModal.vue";
+import DocumentModal from "../components/DocumentModal.vue";
 import { useToast } from "primevue/usetoast";
-import { Toast } from "primevue";
 import Swal from "sweetalert2";
 
 import {
@@ -27,10 +25,10 @@ import { useAuthStores } from "../stores/Auth";
 const useAuth = useAuthStores();
 
 // Modal state
-const showUploadModal = ref(false);
 const showModal = ref(false);
 const toast = useToast();
 const modalType = ref("category");
+const idDocument = ref(0);
 
 const items = ref([]);
 
@@ -46,6 +44,7 @@ let documents = ref([]);
 let tags = ref([]);
 
 const initialize = async () => {
+  showModal.value = false;
   try {
     useAuth.setLoading(true);
     const res = await getFiles();
@@ -72,10 +71,9 @@ const previewDocument = (doc) => {
 
 // Function untuk edit dokumen
 const editDocument = async (id) => {
-  modalType.value = "editModal";
+  modalType.value = "editDocument";
+  idDocument.value = id;
   showModal.value = true;
-
-  const res = await updateFiles(id);
 };
 
 // Function untuk hapus dokumen
@@ -129,13 +127,14 @@ const handledownloadFile = async (id) => {
 <template>
   <div class="p-4">
     <!-- Upload Document Modal -->
-    <UploadDocumentModal
-      :isOpen="showUploadModal"
-      @close="showUploadModal = false"
-      @upload="initialize"
+    <DocumentModal
+      @close="showModal = false"
+      @completed="initialize"
+      :isOpen="showModal"
+      :type="modalType"
+      :idDocument="idDocument"
     />
 
-    <Modal :isOpen="showModal" @close="showModal = false" :type="modalType" />
     <section class="flex">
       <span>
         <h1 class="text-black font-bold">Manajemen Dokumen</h1>
@@ -156,12 +155,15 @@ const handledownloadFile = async (id) => {
         </p>
       </router-link>
       <button
-        @click="showUploadModal = true"
+        @click="
+          showModal = true;
+          modalType = 'UploadDocument';
+        "
         class="flex bg-blue-500 gap-x-2 px-2 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
       >
         <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
 
-        <p class="text-white font-semibold p-2 text-sm">Upload Dokumen</p>
+        <p class="text-white font-semibold p-2 text-sm">Upload Document</p>
       </button>
     </section>
 
