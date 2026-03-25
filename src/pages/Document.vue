@@ -1,6 +1,7 @@
 <script setup>
 import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
+import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
 import { useToast } from "primevue/usetoast";
 import Swal from "sweetalert2";
 
@@ -15,22 +16,24 @@ import {
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref } from "vue";
-import {
-  deleteFile,
-  getFiles,
-  updateFiles,
-  downloadFile,
-} from "../services/FileServices";
+import { deleteFile, getFiles, downloadFile } from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
+import { getTagGroups, getTags } from "../services/Tags";
 const useAuth = useAuthStores();
 
-// Modal state
 const showModal = ref(false);
 const toast = useToast();
 const modalType = ref("category");
 const idDocument = ref(0);
+const tagGroup = ref("");
+const selectedGroupForFilter = ref(null);
+const selectedtagsForFilter = ref(null);
+const showPreviewModal = ref(false);
+const selectedDocument = ref(null);
 
 const items = ref([]);
+let documents = ref([]);
+let tags = ref([]);
 
 const search = (event) => {
   let _items = [...Array(10).keys()];
@@ -40,15 +43,13 @@ const search = (event) => {
     : _items;
 };
 
-let documents = ref([]);
-let tags = ref([]);
-
 const initialize = async () => {
   showModal.value = false;
   try {
     useAuth.setLoading(true);
     const res = await getFiles();
     documents.value = res.files;
+    console.log(documents.value);
     useAuth.setLoading(false);
   } catch (error) {
     toast.add({
@@ -62,11 +63,35 @@ const initialize = async () => {
 
 onMounted(async () => {
   initialize();
+  tagGroup.value = await getTagGroups();
+  tags.value = await getTags();
+  console.log(tags.value);
 });
 
 // Function untuk preview dokumen
 const previewDocument = (doc) => {
-  alert(`Preview: ${doc.fileName}`);
+  selectedDocument.value = doc;
+  showPreviewModal.value = true;
+};
+
+/**
+ * Handle close preview modal
+ */
+const handleClosePreview = () => {
+  showPreviewModal.value = false;
+  selectedDocument.value = null;
+};
+
+/**
+ * Handle preview download
+ */
+const handlePreviewDownload = () => {
+  toast.add({
+    severity: "success",
+    summary: "Sukses",
+    detail: "Dokumen berhasil diunduh",
+    life: 3000,
+  });
 };
 
 // Function untuk edit dokumen
@@ -122,6 +147,18 @@ const handledownloadFile = async (id) => {
     });
   }
 };
+
+const handleFilterByCategory = () => {
+  alert(selectedGroupForFilter.value);
+  // const filteredFile = documents.value.filter(
+  //   (item) => item.tag_group_id === filter,
+  // );
+  // console.log(filteredFile);
+};
+
+const handleFilterByTags = () => {
+  alert(selectedtagsForFilter.value);
+};
 </script>
 
 <template>
@@ -133,6 +170,14 @@ const handledownloadFile = async (id) => {
       :isOpen="showModal"
       :type="modalType"
       :idDocument="idDocument"
+    />
+
+    <!-- Preview Document Modal -->
+    <PreviewDocumentModal
+      :isOpen="showPreviewModal"
+      :document="selectedDocument"
+      @close="handleClosePreview"
+      @download="handlePreviewDownload"
     />
 
     <section class="flex">
@@ -175,14 +220,24 @@ const handledownloadFile = async (id) => {
         <select
           id="countries"
           class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
+          v-model="selectedGroupForFilter"
+          @change="handleFilterByCategory"
         >
-          <option selected disabled="">Semua kategori</option>
+          <option disabled class="text-black">Pilih Tag Group</option>
+          <option v-for="group in tagGroup" :key="group.id" :value="group.id">
+            {{ group.name }}
+          </option>
         </select>
         <select
           id="countries"
           class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
+          v-model="selectedtagsForFilter"
+          @change="handleFilterByTags"
         >
           <option selected disabled="">Semua tags</option>
+          <option v-for="tag in tags" :key="tag.id" :value="tag.id">
+            {{ tag.name }}
+          </option>
         </select>
       </form>
     </section>
