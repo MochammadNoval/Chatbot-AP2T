@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import FormLogin from "../components/FormLogin.vue";
+import Login from "../pages/Login.vue";
 import Dashboard from "../pages/Dashboard.vue";
 import Chat from "../pages/Chat.vue";
 import Document from "../pages/Document.vue";
@@ -14,9 +14,13 @@ import { useAuthStores } from "../stores/Auth";
 const routes = [
   {
     path: "/",
+    redirect: "/login",
+  },
+  {
+    path: "/login",
     name: "login",
     component: AuthLayout,
-    children: [{ path: "", component: FormLogin }],
+    children: [{ path: "", component: Login }],
   },
   {
     path: "/Dashboard",
@@ -71,7 +75,7 @@ router.beforeEach((to, from, next) => {
   const auth = useAuthStores();
   if (to.meta.requiresAuth && !token) {
     auth.setMessage("Silakan login terlebih dahulu");
-    next("/");
+    next("/login");
   } else {
     next();
   }
