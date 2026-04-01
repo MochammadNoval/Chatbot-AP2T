@@ -49,7 +49,6 @@ const initialize = async () => {
     useAuth.setLoading(true);
     const res = await getFiles();
     documents.value = res.files;
-    console.log(documents.value);
     useAuth.setLoading(false);
   } catch (error) {
     toast.add({
