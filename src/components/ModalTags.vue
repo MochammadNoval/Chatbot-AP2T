@@ -6,8 +6,13 @@ import {
   PlusIcon,
 } from "@heroicons/vue/24/outline";
 import { useToast } from "primevue";
-import { ref } from "vue";
-import { addGroupTags, addTags, updateGroupTags } from "../services/Tags";
+import { ref, watch } from "vue";
+import {
+  addGroupTags,
+  addTags,
+  updateGroupTags,
+  updateTag,
+} from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
 const useAuth = useAuthStores();
 
@@ -41,12 +46,61 @@ const isLoading = ref(false);
 
 const emit = defineEmits(["close", "add", "isSubmit"]);
 
+// Watcher untuk mengisi form ketika modal dibuka di mode updateTags
+watch(
+  () => [props.isOpen, props.type, props.currentName],
+  ([isOpen, type, currentName]) => {
+    if (isOpen && type === "updateTags" && currentName) {
+      form.value.name = currentName;
+    }
+  },
+);
+
 const closeModal = () => {
   form.value = {
     name: "",
     groupTags: "",
   };
   emit("close");
+};
+
+/**
+ * Handle update tag
+ */
+const handleUpdateTag = async () => {
+  if (!form.value.name.trim()) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "Nama tag tidak boleh kosong",
+      life: 3000,
+    });
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+    await updateTag(props.id, {
+      name: form.value.name,
+    });
+    toast.add({
+      severity: "success",
+      summary: "Success",
+      detail: "Tag berhasil diupdate",
+      life: 3000,
+    });
+    emit("isSubmit");
+    closeModal();
+  } catch (error) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal mengupdate tag",
+      life: 3000,
+    });
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 const handleAddTags = async () => {
@@ -303,6 +357,60 @@ const handleUpdateGroupTags = async () => {
       >
         <PlusIcon class="size-5 text-white"></PlusIcon>
         {{ isLoading ? "Tambah..." : "Tambah" }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Update Tags -->
+  <div
+    v-if="isOpen && props.type === 'updateTags'"
+    class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-scroll"
+  >
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between p-6 border-b border-gray-200">
+      <span>
+        <h2 class="text-xl font-bold text-gray-900">Edit Tag</h2>
+        <p class="text-gray-500 text-xs mt-1">Ubah nama tag</p>
+      </span>
+      <button
+        @click="closeModal"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+      >
+        <XCircleIcon class="size-7 text-red-500"></XCircleIcon>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="p-6 space-y-4">
+      <!-- Tag Name -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Nama Tag
+        </label>
+        <input
+          v-model="form.name"
+          type="text"
+          placeholder="Masukkan nama tag"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex gap-3 justify-end p-6 border-t border-gray-200">
+      <button
+        @click="closeModal"
+        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+      >
+        Batal
+      </button>
+      <button
+        @click="handleUpdateTag"
+        :disabled="isLoading"
+        class="px-4 py-2 flex gap-x-2 items-center bg-green-600/80 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+      >
+        <PencilIcon class="size-5 text-white"></PencilIcon>
+        {{ isLoading ? "Edit..." : "Edit" }}
       </button>
     </div>
   </div>

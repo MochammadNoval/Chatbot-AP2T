@@ -1,9 +1,9 @@
 <script setup>
 import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
-import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
 import { useToast } from "primevue/usetoast";
 import Swal from "sweetalert2";
+import api from "../services/Api";
 
 import {
   FunnelIcon,
@@ -34,8 +34,6 @@ const idDocument = ref(0);
 const tagGroup = ref("");
 const selectedGroupForFilter = ref(null);
 const selectedtagsForFilter = ref(null);
-const showPreviewModal = ref(false);
-const selectedDocument = ref(null);
 
 const items = ref([]);
 let documents = ref([]);
@@ -70,6 +68,7 @@ const initialize = async () => {
     searchQuery.value = ""; // Reset search query
     currentPage.value = 1; // Reset pagination ke page 1
     useAuth.setLoading(false);
+    console.log(documents.value);
   } catch (error) {
     toast.add({
       severity: "error",
@@ -84,33 +83,20 @@ onMounted(async () => {
   initialize();
   tagGroup.value = await getTagGroups();
   tags.value = await getTags();
-  console.log(tags.value);
 });
 
-// Function untuk preview dokumen
-const previewDocument = (doc) => {
-  selectedDocument.value = doc;
-  showPreviewModal.value = true;
-};
+// Function untuk preview dokumen di tab baru
+const previewDocument = async (doc) => {
+  try {
+    const response = await api.get(`/files/${doc.id}/preview`, {
+      responseType: "blob",
+    });
 
-/**
- * Handle close preview modal
- */
-const handleClosePreview = () => {
-  showPreviewModal.value = false;
-  selectedDocument.value = null;
-};
-
-/**
- * Handle preview download
- */
-const handlePreviewDownload = () => {
-  toast.add({
-    severity: "success",
-    summary: "Sukses",
-    detail: "Dokumen berhasil diunduh",
-    life: 3000,
-  });
+    const fileURL = URL.createObjectURL(response.data);
+    window.open(fileURL, "_blank");
+  } catch (error) {
+    console.error("Preview error:", error);
+  }
 };
 
 // Function untuk edit dokumen
@@ -197,11 +183,7 @@ const handleFilterByTags = async () => {
     // Jika "Semua tags" dipilih (null/empty), ambil semua data
     if (!selectedtagsForFilter.value) {
       await initialize();
-      console.log("ambil semua file berdasarkan tag");
     } else {
-      console.log(
-        `ambil semua file berdasarkan ${selectedtagsForFilter.value}`,
-      );
       // Ambil data berdasarkan tag_ids yang dipilih (array)
       const tagIdsArray = Array.isArray(selectedtagsForFilter.value)
         ? selectedtagsForFilter.value
@@ -246,14 +228,6 @@ const handlePageChange = (page) => {
       :isOpen="showModal"
       :type="modalType"
       :idDocument="idDocument"
-    />
-
-    <!-- Preview Document Modal -->
-    <PreviewDocumentModal
-      :isOpen="showPreviewModal"
-      :document="selectedDocument"
-      @close="handleClosePreview"
-      @download="handlePreviewDownload"
     />
 
     <section class="flex">
@@ -364,7 +338,7 @@ const handlePageChange = (page) => {
                 </div>
               </td>
               <td class="px-6 py-2 text-sm text-gray-700">
-                {{ (document.size / 1024 / 1024).toFixed(2) }} Mb
+                {{ (document.filesize / 1024 / 1024).toFixed(2) }} Mb
               </td>
               <td class="px-6 py-2 text-sm text-gray-700">
                 {{ new Date(document.created_at).toLocaleDateString("id-ID") }}

@@ -257,7 +257,8 @@ const closeModal = () => {
   <div
     v-if="props.isOpen"
     class="fixed inset-0 bg-black/30 bg-opacity-10 z-40 transition-opacity"
-    @click="closeModal"
+    :class="{ 'pointer-events-none': isLoading }"
+    @click="!isLoading && closeModal()"
   ></div>
 
   <!-- Modal -->
@@ -275,9 +276,13 @@ const closeModal = () => {
       </h2>
       <button
         @click="closeModal"
-        class="text-gray-400 hover:text-gray-600 transition-colors"
+        :disabled="isLoading"
+        class="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <XCircleIcon class="size-7 text-red-500 cursor-pointer"></XCircleIcon>
+        <XCircleIcon
+          class="size-7 text-red-500 cursor-pointer"
+          :class="{ 'opacity-50': isLoading }"
+        ></XCircleIcon>
       </button>
     </div>
 
@@ -474,7 +479,8 @@ const closeModal = () => {
     <div class="flex gap-3 justify-end p-6 border-t border-gray-200">
       <button
         @click="closeModal"
-        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+        :disabled="isLoading"
+        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors font-medium"
       >
         Batal
       </button>

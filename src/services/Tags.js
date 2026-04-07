@@ -238,10 +238,116 @@ export async function updateGroupTags(data, id) {
 
 export async function deleteGroupTags(id) {
   try {
+    // Validasi ID
+    if (!id) {
+      throw new Error("ID group tags tidak boleh kosong");
+    }
+
     const res = await api.delete(`/tags/groups/${id}`);
-    return res.data;
+    // DELETE endpoint biasanya tidak mengembalikan data
+    return true;
   } catch (error) {
     const message = handleApiError(error, "deleteGroupTags");
+    throw new Error(message);
+  }
+}
+
+/**
+ * Menghapus tag berdasarkan ID
+ * @param {string|number} id - ID dari tag yang akan dihapus
+ * @returns {Promise<boolean>} True jika berhasil dihapus
+ * @throws {Error} Jika request gagal
+ *
+ * @example
+ * try {
+ *   await deleteTag(5);
+ *   console.log("Tag deleted successfully");
+ * } catch (error) {
+ *   console.error(error.message);
+ * }
+ */
+export async function deleteTag(id) {
+  try {
+    // Validasi ID
+    if (!id) {
+      throw new Error("ID tag tidak boleh kosong");
+    }
+
+    // Request ke server
+    const response = await api.delete(`/tags/${id}`);
+
+    // DELETE endpoint biasanya tidak mengembalikan data (204 atau 200 dengan body kosong)
+    // Status code 2xx sudah cukup menunjukkan kesuksesan
+    return true;
+  } catch (error) {
+    // Jika error dari validasi input
+    if (error instanceof Error && !error.response) {
+      throw error;
+    }
+
+    // Error dari API
+    const message = handleApiError(error, "deleteTag");
+    throw new Error(message);
+  }
+}
+
+/**
+ * Update tag yang sudah ada
+ * @param {string|number} id - ID dari tag yang akan diupdate
+ * @param {object} data - Data tag yang akan diupdate (minimal: { name: string })
+ * @returns {Promise<object>} Response data dari server
+ * @throws {Error} Jika request gagal atau validasi tidak lolos
+ *
+ * @example
+ * try {
+ *   const result = await updateTag(5, { name: "Tag Baru" });
+ *   console.log(result);
+ * } catch (error) {
+ *   console.error(error.message);
+ * }
+ */
+export async function updateTag(id, data) {
+  try {
+    // Validasi ID
+    if (!id) {
+      throw new Error("ID tag tidak boleh kosong");
+    }
+
+    // Validasi data
+    if (!data || typeof data !== "object") {
+      throw new Error("Data harus berupa object");
+    }
+
+    if (
+      !data.name ||
+      typeof data.name !== "string" ||
+      data.name.trim() === ""
+    ) {
+      throw new Error("Nama tag tidak boleh kosong");
+    }
+
+    // Normalisasi data
+    const normalizedData = {
+      name: data.name.trim(),
+    };
+
+    // Request ke server
+    const response = await api.put(`/tags/${id}`, normalizedData);
+
+    // Validasi response
+    if (!response.data) {
+      throw new Error("Response dari server tidak valid");
+    }
+
+    return response.data;
+  } catch (error) {
+    // Jika error dari validasi input
+    if (error instanceof Error && !error.response) {
+      throw error;
+    }
+
+    // Error dari API
+    const message = handleApiError(error, "updateTag");
     throw new Error(message);
   }
 }
