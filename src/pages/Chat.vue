@@ -2,10 +2,12 @@
 import { ref, onMounted } from "vue";
 import logoIconPlus from "./../image/logo-pln-plus.svg";
 import logoPLN from "./../image/pln.svg";
+import Swal from "sweetalert2";
 import {
   sendChatMessage,
   getChatSessions,
   getChatSessionMessages,
+  deleteSession,
 } from "./../services/ChatService";
 import LoadingSpinner from "./../components/LoadingSpinner.vue";
 
@@ -18,10 +20,17 @@ const chatSessions = ref([]);
 const isLoadingSessions = ref(false);
 const isLoadingHistory = ref(false);
 const selectedSessionId = ref(null);
+const deletingSessionId = ref(null);
 
 onMounted(async () => {
   await fetchChatSessions();
 });
+
+const handleNewChat = () => {
+  messages.value = [];
+  conversationId.value = 0;
+  selectedSessionId.value = [];
+};
 
 const fetchChatSessions = async () => {
   isLoadingSessions.value = true;
@@ -87,6 +96,58 @@ const handleSelectSession = async (session) => {
 
 const expandSidebarChat = () => {
   isExpand.value = !isExpand.value;
+};
+
+const handleDeleteSession = async (session, event) => {
+  // Stop event propagation so it doesn't trigger handleSelectSession
+  event.stopPropagation();
+
+  const result = await Swal.fire({
+    title: "Hapus Percakapan?",
+    text: `Apakah Anda yakin ingin menghapus percakapan "${session.title || `Chat #${session.id}`}"?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#6b7280",
+    confirmButtonText: "Ya, Hapus!",
+    cancelButtonText: "Batal",
+  });
+
+  if (result.isConfirmed) {
+    deletingSessionId.value = session.id;
+    try {
+      await deleteSession(session.id);
+
+      // Remove session from list
+      const index = chatSessions.value.findIndex((s) => s.id === session.id);
+      if (index > -1) {
+        chatSessions.value.splice(index, 1);
+      }
+
+      // Reset state if deleted session was selected
+      if (selectedSessionId.value === session.id) {
+        selectedSessionId.value = null;
+        conversationId.value = 0;
+        messages.value = [];
+      }
+
+      await Swal.fire({
+        title: "Berhasil!",
+        text: "Percakapan telah dihapus.",
+        icon: "success",
+        confirmButtonColor: "#3b82f6",
+      });
+    } catch (error) {
+      await Swal.fire({
+        title: "Gagal!",
+        text: error.message || "Gagal menghapus percakapan",
+        icon: "error",
+        confirmButtonColor: "#ef4444",
+      });
+    } finally {
+      deletingSessionId.value = null;
+    }
+  }
 };
 
 const handleSendMessage = async (e) => {
@@ -174,7 +235,10 @@ const formatTimeAgo = (dateString) => {
       ]"
     >
       <div class="border-b border-gray-400/20 w-full px-3">
-        <button class="bg-blue-500 p-2 flex rounded-lg text-sm w-full mb-4">
+        <button
+          class="bg-blue-500 p-2 flex rounded-lg text-sm w-full mb-4 hover:cursor-pointer"
+          @click="handleNewChat"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -237,7 +301,7 @@ const formatTimeAgo = (dateString) => {
           :key="session.id"
           @click="handleSelectSession(session)"
           :class="[
-            'rounded-lg py-2 px-3 flex gap-x-2 items-center cursor-pointer transition-all',
+            'rounded-lg py-2 px-3 flex gap-x-2 items-center cursor-pointer transition-all group',
             selectedSessionId === session.id
               ? 'bg-blue-400/30 border border-blue-400'
               : 'bg-blue-300/20 hover:bg-blue-300/30',
@@ -266,6 +330,29 @@ const formatTimeAgo = (dateString) => {
               {{ formatTimeAgo(session.created_at || session.updated_at) }}
             </p>
           </div>
+
+          <!-- Delete Button -->
+          <button
+            @click="handleDeleteSession(session, $event)"
+            :disabled="deletingSessionId === session.id"
+            class="flex-shrink-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/70 p-1.5 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+            title="Hapus percakapan"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+              class="size-4"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
+              />
+            </svg>
+          </button>
         </div>
 
         <div

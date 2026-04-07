@@ -60,3 +60,22 @@ export async function getChatSessionMessages(sessionId) {
     throw new Error(chatMessage);
   }
 }
+
+export async function deleteSession(sessionId) {
+  try {
+    const response = await api.delete(`/chat/sessions/${sessionId}`);
+    return response.data;
+  } catch (error) {
+    let chatMessage = "Gagal menghapus percakapan, silahkan coba lagi!";
+
+    if (error.response) {
+      chatMessage = "Terjadi kesalahan pada server, silahkan coba lagi!";
+    } else if (error.request) {
+      chatMessage = "Periksa koneksi internet anda, silahkan coba lagi!";
+    } else {
+      chatMessage =
+        "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian!";
+    }
+    throw new Error(chatMessage);
+  }
+}

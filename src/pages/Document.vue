@@ -16,7 +16,12 @@ import {
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref } from "vue";
-import { deleteFile, getFiles, downloadFile } from "../services/FileServices";
+import {
+  deleteFile,
+  getFiles,
+  downloadFile,
+  getFilesById,
+} from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
 import { getTagGroups, getTags } from "../services/Tags";
 const useAuth = useAuthStores();
@@ -147,16 +152,37 @@ const handledownloadFile = async (id) => {
   }
 };
 
-const handleFilterByCategory = () => {
-  alert(selectedGroupForFilter.value);
-  // const filteredFile = documents.value.filter(
-  //   (item) => item.tag_group_id === filter,
-  // );
-  // console.log(filteredFile);
-};
+const handleFilterByTags = async () => {
+  try {
+    useAuth.setLoading(true);
 
-const handleFilterByTags = () => {
-  alert(selectedtagsForFilter.value);
+    // Jika "Semua tags" dipilih (null/empty), ambil semua data
+    if (!selectedtagsForFilter.value) {
+      await initialize();
+      console.log("ambil semua file berdasarkan tag");
+    } else {
+      console.log(
+        `ambil semua file berdasarkan ${selectedtagsForFilter.value}`,
+      );
+      // Ambil data berdasarkan tag_ids yang dipilih (array)
+      const tagIdsArray = Array.isArray(selectedtagsForFilter.value)
+        ? selectedtagsForFilter.value
+        : [selectedtagsForFilter.value];
+      const res = await getFilesById(tagIdsArray);
+      console.log(res.files);
+      documents.value = res.files || [];
+    }
+
+    useAuth.setLoading(false);
+  } catch (error) {
+    useAuth.setLoading(false);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal memfilter dokumen",
+      life: 3000,
+    });
+  }
 };
 </script>
 
@@ -216,7 +242,8 @@ const handleFilterByTags = () => {
       <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
       <p class="font-semibold text-black ms-2">Filter :</p>
       <form class="max-w-sm ms-2 flex gap-x-2">
-        <select
+        <!-- FILTER BY GROUP TAGS -->
+        <!-- <select
           id="countries"
           class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
           v-model="selectedGroupForFilter"
@@ -226,14 +253,16 @@ const handleFilterByTags = () => {
           <option v-for="group in tagGroup" :key="group.id" :value="group.id">
             {{ group.name }}
           </option>
-        </select>
+        </select> -->
+
+        <!-- Filter by Tags -->
         <select
           id="countries"
           class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
           v-model="selectedtagsForFilter"
           @change="handleFilterByTags"
         >
-          <option selected disabled="">Semua tags</option>
+          <option value="">Semua tags</option>
           <option v-for="tag in tags" :key="tag.id" :value="tag.id">
             {{ tag.name }}
           </option>

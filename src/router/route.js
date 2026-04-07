@@ -8,6 +8,7 @@ import MainLayout from "../layouts/MainLayout.vue";
 import Tags from "../pages/Tags.vue";
 import User from "../pages/User.vue";
 import Profile from "../pages/Profile.vue";
+import NotFound from "../pages/NotFound.vue";
 
 import { useAuthStores } from "../stores/Auth";
 
@@ -62,6 +63,24 @@ const routes = [
     component: MainLayout,
     meta: { requiresAuth: true },
     children: [{ path: "/profile", component: Profile }],
+  },
+  {
+    path: "/talent-management",
+    name: "talent-management",
+    component: NotFound,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/setting",
+    name: "setting",
+    component: NotFound,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/profile",
+    name: "profile",
+    component: NotFound,
+    meta: { requiresAuth: true },
   },
 ];
 

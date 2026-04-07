@@ -22,9 +22,19 @@ export async function getFiles() {
     throw new Error(fileMessage); // lempar lagi biar bisa ditangkap di component
   }
 }
-export async function getFilesById(id) {
+
+// Get files by array of tag ids
+export async function getFilesById(tagIds) {
+  console.log(tagIds);
   try {
-    const response = await api.get(`/files/${id}`);
+    // Convert array to comma-separated string for query parameter
+    const tagIdsParam = Array.isArray(tagIds) ? tagIds.join(",") : tagIds;
+    const response = await api.get("/files/by-tags", {
+      params: {
+        tag_ids: tagIdsParam,
+      },
+    });
+    console.log(response.data);
     return response.data;
   } catch (error) {
     // handling error
@@ -45,9 +55,6 @@ export async function getFilesById(id) {
 }
 
 export async function uploadFileAxios(formData) {
-  console.log(formData.get("file"));
-  console.log(formData.get("filename"));
-  console.log(formData.get("tag_ids"));
   try {
     const response = await api.post("/files/upload", formData, {
       onUploadProgress: (e) => {
