@@ -38,7 +38,9 @@ const selectedDocument = ref(null);
 
 const items = ref([]);
 let documents = ref([]);
+let allDocuments = ref([]); // Menyimpan semua dokumen original
 let tags = ref([]);
+let searchQuery = ref(""); // Menyimpan search query
 
 const search = (event) => {
   let _items = [...Array(10).keys()];
@@ -54,6 +56,8 @@ const initialize = async () => {
     useAuth.setLoading(true);
     const res = await getFiles();
     documents.value = res.files;
+    allDocuments.value = res.files; // Simpan data original
+    searchQuery.value = ""; // Reset search query
     useAuth.setLoading(false);
   } catch (error) {
     toast.add({
@@ -152,9 +156,30 @@ const handledownloadFile = async (id) => {
   }
 };
 
+/**
+ * Perform live search based on filename
+ * @param {string} query - Search query
+ */
+const performSearch = (query) => {
+  searchQuery.value = query.toLowerCase(); // Simpan search query
+
+  if (!searchQuery.value.trim()) {
+    // Jika search kosong, tampilkan semua dokumen dari allDocuments
+    documents.value = [...allDocuments.value];
+  } else {
+    // Filter dokumen berdasarkan filename
+    documents.value = allDocuments.value.filter((doc) =>
+      doc.filename.toLowerCase().includes(searchQuery.value),
+    );
+  }
+};
+
 const handleFilterByTags = async () => {
   try {
     useAuth.setLoading(true);
+
+    // Reset search query saat filter tag berubah
+    searchQuery.value = "";
 
     // Jika "Semua tags" dipilih (null/empty), ambil semua data
     if (!selectedtagsForFilter.value) {
@@ -171,6 +196,7 @@ const handleFilterByTags = async () => {
       const res = await getFilesById(tagIdsArray);
       console.log(res.files);
       documents.value = res.files || [];
+      allDocuments.value = res.files || []; // Simpan data filtered ke allDocuments
     }
 
     useAuth.setLoading(false);
@@ -237,7 +263,11 @@ const handleFilterByTags = async () => {
       </button>
     </section>
 
-    <InputSearch class="bg-[#F5FAFF] mt-8" />
+    <InputSearch 
+      class="bg-[#F5FAFF] mt-8" 
+      placeholder="Cari file..." 
+      @search="performSearch"
+    />
     <section class="flex items-center">
       <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
       <p class="font-semibold text-black ms-2">Filter :</p>
