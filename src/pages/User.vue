@@ -3,7 +3,8 @@ import Swal from "sweetalert2";
 import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import InputSearch from "../components/InputSearch.vue";
 import UserCreateModal from "../components/UserCreateModal.vue";
-import { ref, onMounted } from "vue";
+import Pagination from "../components/Pagination.vue";
+import { ref, onMounted, computed } from "vue";
 import { getUsers, deleteUser } from "../services/User";
 import { formatDate } from "../helpers/helper";
 
@@ -11,8 +12,19 @@ import { formatDate } from "../helpers/helper";
 const showModal = ref(false);
 const isLoadingUsers = ref(false);
 const users = ref([]);
+const allUsers = ref([]); // Menyimpan semua user original
 const isEditMode = ref(false);
 const selectedUser = ref(null);
+const currentPage = ref(1); // Halaman saat ini
+const itemsPerPage = 5; // Items per halaman
+const searchQuery = ref(""); // State untuk tracking search query
+
+// Computed untuk paginated users
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return users.value.slice(start, end);
+});
 
 /**
  * Fetch daftar user dari API
@@ -21,6 +33,9 @@ const fetchUsers = async () => {
   isLoadingUsers.value = true;
   try {
     users.value = await getUsers();
+    allUsers.value = users.value; // Simpan data original
+    searchQuery.value = ""; // Reset search query
+    currentPage.value = 1; // Reset pagination ke page 1
   } catch (error) {
     Swal.fire({
       title: "Gagal Memuat Data",
@@ -128,6 +143,43 @@ const handleEditUser = (userId) => {
   }
 };
 
+/**
+ * Handle page change dari pagination component
+ * @param {number} page - Halaman yang dipilih
+ */
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  // Auto-scroll ke atas table
+  document
+    .querySelector(".mt-4")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+/**
+ * Perform live search berdasarkan nama atau email user
+ * @param {string} query - Search query
+ */
+const performSearch = (query) => {
+  searchQuery.value = query.toLowerCase(); // Simpan search query dalam lowercase
+  currentPage.value = 1; // Reset pagination ke page 1 saat search
+
+  if (!searchQuery.value.trim()) {
+    // Jika search kosong, tampilkan semua user dari allUsers
+    users.value = [...allUsers.value];
+  } else {
+    // Filter user berdasarkan nama atau email
+    users.value = allUsers.value.filter(
+      (user) =>
+        (user.name || user.Nama || "")
+          .toLowerCase()
+          .includes(searchQuery.value) ||
+        (user.email || user.Email || "")
+          .toLowerCase()
+          .includes(searchQuery.value),
+    );
+  }
+};
+
 // Load data user saat component mount
 onMounted(() => {
   fetchUsers();
@@ -160,23 +212,28 @@ onMounted(() => {
       </button>
     </section>
 
-    <InputSearch class="bg-[#F5FAFF] mt-8" />
+    <InputSearch
+      class="bg-[#F5FAFF] mt-8"
+      placeholder="Cari user..."
+      @search="performSearch"
+    />
 
     <!-- Users Table -->
     <section class="mt-4">
-      <div class="overflow-x-auto shadow-md rounded-lg">
-        <!-- Loading State -->
-        <div v-if="isLoadingUsers" class="p-8 text-center">
-          <p class="text-gray-500">Memuat data user...</p>
-        </div>
+      <!-- Loading State -->
+      <div v-if="isLoadingUsers" class="p-8 text-center">
+        <p class="text-gray-500">Memuat data user...</p>
+      </div>
 
-        <!-- Empty State -->
-        <div v-else-if="users.length === 0" class="p-8 text-center">
-          <p class="text-gray-500">Tidak ada data user</p>
-        </div>
+      <!-- Empty State -->
+      <div v-else-if="users.length === 0" class="text-center py-8 mt-4">
+        <p class="text-gray-500 text-sm">Tidak ada data user</p>
+      </div>
 
+      <!-- Table Container -->
+      <div v-else class="overflow-x-auto shadow-md rounded-lg">
         <!-- Table -->
-        <table v-else class="w-full bg-white">
+        <table class="w-full bg-white">
           <thead class="bg-blue-600 text-white">
             <tr>
               <th class="px-6 py-3 text-left text-sm font-semibold">
@@ -192,7 +249,7 @@ onMounted(() => {
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr
-              v-for="(user, index) in users"
+              v-for="(user, index) in paginatedUsers"
               :key="user.id || index"
               class="hover:bg-gray-50 transition-colors"
               :class="
@@ -239,6 +296,16 @@ onMounted(() => {
           </tbody>
         </table>
       </div>
+
+      <!-- Pagination Component -->
+      <Pagination
+        v-if="users.length > 0"
+        :currentPage="currentPage"
+        :totalItems="users.length"
+        :itemsPerPage="itemsPerPage"
+        :maxVisiblePages="5"
+        @page-change="handlePageChange"
+      />
     </section>
   </div>
 </template>
