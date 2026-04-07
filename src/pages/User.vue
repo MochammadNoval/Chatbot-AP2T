@@ -3,7 +3,6 @@ import Swal from "sweetalert2";
 import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import InputSearch from "../components/InputSearch.vue";
 import UserCreateModal from "../components/UserCreateModal.vue";
-import Toast from "../components/Toast.vue";
 import { ref, onMounted } from "vue";
 import { getUsers, deleteUser } from "../services/User";
 import { formatDate } from "../helpers/helper";
@@ -11,21 +10,9 @@ import { formatDate } from "../helpers/helper";
 // State
 const showModal = ref(false);
 const isLoadingUsers = ref(false);
-const showToast = ref(false);
-const toastMessage = ref("");
-const toastType = ref("info");
 const users = ref([]);
 const isEditMode = ref(false);
 const selectedUser = ref(null);
-
-/**
- * Tampilkan toast notification
- */
-const showNotification = (message, type = "info") => {
-  toastMessage.value = message;
-  toastType.value = type;
-  showToast.value = true;
-};
 
 /**
  * Fetch daftar user dari API
@@ -34,13 +21,13 @@ const fetchUsers = async () => {
   isLoadingUsers.value = true;
   try {
     users.value = await getUsers();
-    console.log(users.value);
   } catch (error) {
-    showNotification(
-      error.response?.data?.message || "Gagal memuat data user",
-      "error",
-    );
-    // Fallback dengan data mock jika API error
+    Swal.fire({
+      title: "Gagal Memuat Data",
+      text: error.response?.data?.message || "Gagal memuat data user",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
   } finally {
     isLoadingUsers.value = false;
   }
@@ -110,7 +97,6 @@ const handleDeleteUser = async (userId) => {
 
             // Refresh data
             fetchUsers();
-            showNotification("User berhasil dihapus", "success");
           } catch (error) {
             // Tampilkan error dialog
             Swal.fire({
@@ -121,11 +107,6 @@ const handleDeleteUser = async (userId) => {
               icon: "error",
               confirmButtonColor: "#3b82f6",
             });
-
-            showNotification(
-              error.response?.data?.message || "Gagal menghapus user",
-              "error",
-            );
           }
         },
       });
@@ -155,14 +136,6 @@ onMounted(() => {
 
 <template>
   <div class="p-4">
-    <!-- Toast Notification -->
-    <Toast
-      v-if="showToast"
-      :message="toastMessage"
-      :type="toastType"
-      :duration="5000"
-    />
-
     <!-- User Create Modal -->
     <UserCreateModal
       :isOpen="showModal"

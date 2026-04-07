@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, watch } from "vue";
 import { XCircleIcon, UserPlusIcon } from "@heroicons/vue/24/outline";
-import Toast from "./Toast.vue";
+import Swal from "sweetalert2";
 import { createUser, updateUser } from "../services/User";
 import {
   PasswordValidator,
@@ -36,9 +36,6 @@ const formData = reactive({
 });
 
 const isLoading = ref(false);
-const showToast = ref(false);
-const toastMessage = ref("");
-const toastType = ref("info"); // success | error | warning | info
 
 /**
  * Reset form ke state awal
@@ -65,40 +62,51 @@ watch(
 );
 
 /**
- * Tampilkan toast notification
- */
-const showNotification = (message, type = "info") => {
-  toastMessage.value = message;
-  toastType.value = type;
-  showToast.value = true;
-};
-
-/**
  * Validasi input data
  * @returns {boolean}
  */
 const validateForm = () => {
   // Validasi email kosong
   if (!formData.email.trim()) {
-    showNotification("Email tidak boleh kosong", "error");
+    Swal.fire({
+      title: "Validasi Gagal",
+      text: "Email tidak boleh kosong",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
     return false;
   }
 
   // Validasi email format
   if (!isValidEmail(formData.email)) {
-    showNotification("Format email tidak valid", "error");
+    Swal.fire({
+      title: "Validasi Gagal",
+      text: "Format email tidak valid",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
     return false;
   }
 
   // Validasi nama kosong
   if (!formData.name.trim()) {
-    showNotification("Nama tidak boleh kosong", "error");
+    Swal.fire({
+      title: "Validasi Gagal",
+      text: "Nama tidak boleh kosong",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
     return false;
   }
 
   // Validasi nama minimal 2 karakter
   if (!isValidName(formData.name)) {
-    showNotification("Nama minimal 2 karakter", "error");
+    Swal.fire({
+      title: "Validasi Gagal",
+      text: "Nama minimal 2 karakter",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
     return false;
   }
 
@@ -106,7 +114,12 @@ const validateForm = () => {
   if (!props.isEditMode || (props.isEditMode && formData.password)) {
     // Validasi password kosong
     if (!formData.password) {
-      showNotification("Password tidak boleh kosong", "error");
+      Swal.fire({
+        title: "Validasi Gagal",
+        text: "Password tidak boleh kosong",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+      });
       return false;
     }
 
@@ -115,9 +128,14 @@ const validateForm = () => {
     const validationResult = passwordValidator.validate();
 
     if (!validationResult.isValid) {
-      // Tampilkan semua error password dalam satu pesan
+      // Tampilkan semua error password
       const errorMessage = validationResult.errors.join("\n");
-      showNotification(errorMessage, "error");
+      Swal.fire({
+        title: "Validasi Password Gagal",
+        html: `<div style="text-align: left; white-space: pre-wrap;">${errorMessage}</div>`,
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+      });
       return false;
     }
   }
@@ -138,6 +156,7 @@ const handleSubmit = async () => {
 
   try {
     let response;
+    const userName = formData.name.trim();
 
     if (props.isEditMode) {
       // Update user
@@ -155,7 +174,14 @@ const handleSubmit = async () => {
         props.userData.id || props.userData.ID,
         updateData,
       );
-      showNotification(`User ${formData.name} berhasil diperbarui`, "success");
+
+      // Tampilkan success dialog dan tunggu user klik OK
+      await Swal.fire({
+        title: "Berhasil!",
+        text: `User ${userName} berhasil diperbarui`,
+        icon: "success",
+        confirmButtonColor: "#3b82f6",
+      });
     } else {
       // Create user baru
       response = await createUser({
@@ -163,17 +189,22 @@ const handleSubmit = async () => {
         name: formData.name.trim(),
         password: formData.password,
       });
-      showNotification(`User ${formData.name} berhasil ditambahkan`, "success");
+
+      // Tampilkan success dialog dan tunggu user klik OK
+      await Swal.fire({
+        title: "Berhasil!",
+        text: `User ${userName} berhasil ditambahkan`,
+        icon: "success",
+        confirmButtonColor: "#3b82f6",
+      });
     }
 
     // Reset form
     resetForm();
 
-    // Emit success event (untuk parent component bisa refresh data)
-    setTimeout(() => {
-      emit("success", response);
-      closeModal();
-    }, 1500);
+    // Emit success event dan close modal setelah user klik OK
+    emit("success", response);
+    closeModal();
   } catch (error) {
     // Tampilkan error dari API
     const errorMessage =
@@ -181,7 +212,12 @@ const handleSubmit = async () => {
       error.message ||
       "Gagal memproses data user. Silahkan coba lagi";
 
-    showNotification(errorMessage, "error");
+    Swal.fire({
+      title: "Gagal!",
+      text: errorMessage,
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
   } finally {
     isLoading.value = false;
   }
@@ -192,25 +228,17 @@ const handleSubmit = async () => {
  */
 const closeModal = () => {
   resetForm();
-  showToast.value = false;
   emit("close");
 };
 </script>
 
 <template>
-  <!-- Toast Notification -->
-  <Toast
-    v-if="showToast"
-    :message="toastMessage"
-    :type="toastType"
-    :duration="5000"
-  />
-
   <!-- Modal Backdrop -->
   <div
     v-if="isOpen"
     class="fixed inset-0 bg-black/30 bg-opacity-30 z-40 transition-opacity"
-    @click="closeModal"
+    :class="{ 'pointer-events-none': isLoading }"
+    @click="!isLoading && closeModal()"
   ></div>
 
   <!-- Modal -->
@@ -225,10 +253,14 @@ const closeModal = () => {
       </h2>
       <button
         @click="closeModal"
-        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         :disabled="isLoading"
+        title="Close"
       >
-        <XCircleIcon class="size-6 text-red-500"></XCircleIcon>
+        <XCircleIcon
+          class="size-6 text-red-500"
+          :class="{ 'opacity-50': isLoading }"
+        ></XCircleIcon>
       </button>
     </div>
 
@@ -307,7 +339,7 @@ const closeModal = () => {
       <button
         @click="closeModal"
         :disabled="isLoading"
-        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors font-medium"
       >
         Batal
       </button>
