@@ -15,7 +15,7 @@ import {
   FolderIcon,
 } from "@heroicons/vue/24/outline";
 
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import {
   deleteFile,
   getFiles,
@@ -24,6 +24,7 @@ import {
 } from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
 import { getTagGroups, getTags } from "../services/Tags";
+import Pagination from "../components/Pagination.vue";
 const useAuth = useAuthStores();
 
 const showModal = ref(false);
@@ -41,6 +42,15 @@ let documents = ref([]);
 let allDocuments = ref([]); // Menyimpan semua dokumen original
 let tags = ref([]);
 let searchQuery = ref(""); // Menyimpan search query
+let currentPage = ref(1); // Halaman saat ini
+const itemsPerPage = 3; // Items per halaman
+
+// Computed untuk paginated documents
+const paginatedDocuments = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return documents.value.slice(start, end);
+});
 
 const search = (event) => {
   let _items = [...Array(10).keys()];
@@ -58,6 +68,7 @@ const initialize = async () => {
     documents.value = res.files;
     allDocuments.value = res.files; // Simpan data original
     searchQuery.value = ""; // Reset search query
+    currentPage.value = 1; // Reset pagination ke page 1
     useAuth.setLoading(false);
   } catch (error) {
     toast.add({
@@ -162,6 +173,7 @@ const handledownloadFile = async (id) => {
  */
 const performSearch = (query) => {
   searchQuery.value = query.toLowerCase(); // Simpan search query
+  currentPage.value = 1; // Reset pagination ke page 1 saat search
 
   if (!searchQuery.value.trim()) {
     // Jika search kosong, tampilkan semua dokumen dari allDocuments
@@ -178,8 +190,9 @@ const handleFilterByTags = async () => {
   try {
     useAuth.setLoading(true);
 
-    // Reset search query saat filter tag berubah
+    // Reset search query dan pagination saat filter tag berubah
     searchQuery.value = "";
+    currentPage.value = 1; // Reset pagination ke page 1
 
     // Jika "Semua tags" dipilih (null/empty), ambil semua data
     if (!selectedtagsForFilter.value) {
@@ -209,6 +222,18 @@ const handleFilterByTags = async () => {
       life: 3000,
     });
   }
+};
+
+/**
+ * Handle page change dari pagination component
+ * @param {number} page - Halaman yang dipilih
+ */
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  // Auto-scroll ke atas table
+  document
+    .querySelector(".mt-4")
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
 </script>
 
@@ -263,9 +288,9 @@ const handleFilterByTags = async () => {
       </button>
     </section>
 
-    <InputSearch 
-      class="bg-[#F5FAFF] mt-8" 
-      placeholder="Cari file..." 
+    <InputSearch
+      class="bg-[#F5FAFF] mt-8"
+      placeholder="Cari file..."
       @search="performSearch"
     />
     <section class="flex items-center">
@@ -318,7 +343,7 @@ const handleFilterByTags = async () => {
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr
-              v-for="(document, index) in documents"
+              v-for="(document, index) in paginatedDocuments"
               :key="document.id"
               class="hover:bg-gray-50 transition-colors"
               :class="index % 2 === 0 ? 'bg-white' : 'bg-gray-50'"
@@ -392,6 +417,16 @@ const handleFilterByTags = async () => {
       <div v-if="documents.length === 0" class="text-center py-8 mt-4">
         <p class="text-gray-500 text-sm">Tidak ada dokumen yang ditemukan</p>
       </div>
+
+      <!-- Pagination Component -->
+      <Pagination
+        v-if="documents.length > 0"
+        :currentPage="currentPage"
+        :totalItems="documents.length"
+        :itemsPerPage="itemsPerPage"
+        :maxVisiblePages="5"
+        @page-change="handlePageChange"
+      />
     </section>
   </div>
 </template>
