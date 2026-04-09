@@ -10,7 +10,7 @@ export const useAuthStores = defineStore("auth", {
   }),
   actions: {
     login(user) {
-      this.username = user.username;
+      this.username = user.name;
       this.loggedIn = true;
       this.isAdmin = user.isAdmin || false;
       localStorage.setItem("username", user.username);

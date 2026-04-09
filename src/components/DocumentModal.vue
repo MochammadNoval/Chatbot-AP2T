@@ -195,7 +195,7 @@ const handleUpload = () => {
     return; // ⬅️ PENTING: hentikan function
   }
 
-  if (formData.value.file.size > 5 * 1024 * 1024) {
+  if (formData.value.file.size > 100 * 1024 * 1024) {
     toast.add({
       severity: "error",
       summary: "Error",

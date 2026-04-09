@@ -381,7 +381,7 @@ const handleExpand = () => {
         <p class="text-blue-500 rounded-full px-3.5 py-2 bg-blue-300/20">A</p>
       </div>
       <span :hidden="!isExpand" class="ms-2">
-        <p class="font-bold text-black text-md">Noval</p>
+        <p class="font-bold text-black text-md">{{ useAuth.username }}</p>
         <p class="text-slate-700/80 text-md">User</p>
       </span>
       <svg

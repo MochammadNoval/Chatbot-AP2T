@@ -14,7 +14,7 @@ const isSubmit = ref(false);
 
 const showPassword = ref(false);
 const form = ref({
-  username: "",
+  email: "",
   password: "",
 });
 
@@ -30,7 +30,7 @@ const handleLogin = async () => {
   loading.value = true;
   try {
     const res = await Login({
-      email: form.value.username,
+      email: form.value.email,
       password: form.value.password,
     });
     toast.add({
@@ -39,7 +39,6 @@ const handleLogin = async () => {
       detail: "Anda akan segera diarahkan ke dashboard",
       life: 2500,
     });
-
     authStore.message = null;
     setTimeout(() => {
       router.push("/dashboard");
@@ -94,7 +93,7 @@ const handleLogin = async () => {
       <div class="p-6">
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div class="space-y-2">
-            <label for="username">Username</label>
+            <label for="username">Email</label>
             <div
               class="w-full rounded-xl bg-blue-100/40 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 border border-slate-300 mt-2 pl-2 flex items-center"
             >
@@ -117,7 +116,7 @@ const handleLogin = async () => {
                 id="email"
                 type="email"
                 placeholder="nama@email.com"
-                v-model="form.username"
+                v-model="form.email"
                 required
                 class="w-full focus:outline-none focus:ring-0 focus:ring-blue-500 focus:border-blue-500 px-3 py-2"
               />

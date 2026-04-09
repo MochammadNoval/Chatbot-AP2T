@@ -10,6 +10,7 @@ import {
   deleteSession,
 } from "./../services/ChatService";
 import LoadingSpinner from "./../components/LoadingSpinner.vue";
+import api from "../services/Api";
 
 const isExpand = ref(true);
 const messages = ref([]);
@@ -79,6 +80,7 @@ const handleSelectSession = async (session) => {
         type,
         content: msg.message || msg.content || msg.text || "",
         timestamp,
+        sources: msg.sources || msg.full_sources || [],
       };
     });
   } catch (error) {
@@ -181,6 +183,7 @@ const handleSendMessage = async (e) => {
         type: "bot",
         content: response.response,
         timestamp: new Date(),
+        sources: response.sources || response.full_sources || [],
       });
     }
   } catch (error) {
@@ -217,6 +220,25 @@ const formatTimeAgo = (dateString) => {
 
   return date.toLocaleDateString("id-ID");
 };
+
+const handlePreviewDocument = async (doc) => {
+  try {
+    const response = await api.get(`/files/${doc}/preview`, {
+      responseType: "blob",
+    });
+
+    const fileURL = URL.createObjectURL(response.data);
+    window.open(fileURL, "_blank");
+  } catch (error) {
+    console.error("Preview error:", error);
+  }
+};
+
+// const handlePreviewDocument = (fileId) => {
+//   // Buka preview dokumen di tab baru menggunakan endpoint API
+//   const previewUrl = `/api/files/preview/${fileId}`;
+//   window.open(previewUrl, "_blank");
+// };
 </script>
 
 <template>
@@ -451,9 +473,30 @@ const formatTimeAgo = (dateString) => {
           <!-- Bot Message -->
           <div v-else-if="message.type === 'bot'" class="mr-auto">
             <div
-              class="bg-gray-200 text-black rounded-lg p-3 max-w-xs lg:max-w-md"
+              class="bg-mainblue text-black rounded-lg p-3 max-w-xs lg:max-w-md"
             >
               <p class="text-sm">{{ message.content }}</p>
+
+              <!-- Document Sources -->
+              <div
+                v-if="message.sources && message.sources.length > 0"
+                class="mt-3 pt-3 border-t border-gray-300"
+              >
+                <p class="text-xs font-semibold text-gray-600 mb-2">
+                  Sumber Dokumen:
+                </p>
+                <div class="flex flex-col gap-1">
+                  <button
+                    v-for="(source, idx) in message.sources"
+                    :key="idx"
+                    @click="handlePreviewDocument(source.file_id)"
+                    class="text-xs text-blue-600 hover:text-blue-800 hover:underline text-left transition-colors truncate"
+                    :title="source.filename"
+                  >
+                    📄 {{ source.filename }}
+                  </button>
+                </div>
+              </div>
             </div>
             <p class="text-xs text-gray-400 mt-1">
               {{ formatTime(message.timestamp) }}

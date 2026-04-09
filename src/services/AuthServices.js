@@ -1,10 +1,39 @@
 import axios from "axios";
 import api from "./Api";
+import { useAuthStores } from "../stores/Auth";
 
 export async function Login(user) {
+  const useAuth = useAuthStores();
   try {
     const response = await api.post("/auth/login", user);
-    localStorage.setItem("access_token", response.data.access_token);
+
+    const accessToken = response.data?.access_token;
+
+    if (!accessToken) {
+      throw new Error("Login gagal: access_token tidak ada");
+    }
+
+    // simpan token
+    localStorage.setItem("access_token", accessToken);
+
+    // ambil data user
+    const userData = await getCurrentUser();
+
+    useAuth.login(userData);
+
+    return {
+      userData,
+      responseData: response.data,
+    };
+  } catch (error) {
+    console.error("Login error:", error);
+    throw error;
+  }
+}
+
+export async function getCurrentUser() {
+  try {
+    const response = await api.get("/auth/me");
     return response.data;
   } catch (error) {
     throw error;
