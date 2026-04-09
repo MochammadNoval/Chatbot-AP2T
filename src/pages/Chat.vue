@@ -68,6 +68,7 @@ const handleSelectSession = async (session) => {
   conversationId.value = session.id;
   selectedSessionId.value = session.id;
   isLoadingHistory.value = true;
+  console.log(session.id);
 
   try {
     const response = await getChatSessionMessages(session.id);

@@ -498,7 +498,7 @@ const closeModal = () => {
         />
         <div v-else class="flex gap-x-2 items-center">
           <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
-          <p>{{ props.type === "editDocument" ? "Update" : "upload" }}</p>
+          <p>{{ props.type === "editDocument" ? "Simpan" : "upload" }}</p>
         </div>
       </button>
     </div>

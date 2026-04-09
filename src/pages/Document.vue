@@ -1,6 +1,7 @@
 <script setup>
 import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
+import TagSearchFilter from "../components/TagSearchFilter.vue";
 import { useToast } from "primevue/usetoast";
 import Swal from "sweetalert2";
 import api from "../services/Api";
@@ -33,7 +34,8 @@ const modalType = ref("category");
 const idDocument = ref(0);
 const tagGroup = ref("");
 const selectedGroupForFilter = ref(null);
-const selectedtagsForFilter = ref(null);
+const selectedTagObjects = ref([]); // Store selected tag objects
+const isFilterLoading = ref(false); // Loading state for filter
 
 const items = ref([]);
 let documents = ref([]);
@@ -174,29 +176,27 @@ const performSearch = (query) => {
 
 const handleFilterByTags = async () => {
   try {
-    useAuth.setLoading(true);
+    isFilterLoading.value = true;
 
     // Reset search query dan pagination saat filter tag berubah
     searchQuery.value = "";
     currentPage.value = 1; // Reset pagination ke page 1
 
-    // Jika "Semua tags" dipilih (null/empty), ambil semua data
-    if (!selectedtagsForFilter.value) {
+    // Jika tidak ada tag yang dipilih, ambil semua data
+    if (selectedTagObjects.value.length === 0) {
       await initialize();
     } else {
-      // Ambil data berdasarkan tag_ids yang dipilih (array)
-      const tagIdsArray = Array.isArray(selectedtagsForFilter.value)
-        ? selectedtagsForFilter.value
-        : [selectedtagsForFilter.value];
-      const res = await getFilesById(tagIdsArray);
+      // Extract tag IDs dari selected tag objects
+      const tagIds = selectedTagObjects.value.map((tag) => tag.id);
+      const res = await getFilesById(tagIds);
       console.log(res.files);
       documents.value = res.files || [];
       allDocuments.value = res.files || []; // Simpan data filtered ke allDocuments
     }
 
-    useAuth.setLoading(false);
+    isFilterLoading.value = false;
   } catch (error) {
-    useAuth.setLoading(false);
+    isFilterLoading.value = false;
     toast.add({
       severity: "error",
       summary: "Error",
@@ -204,6 +204,26 @@ const handleFilterByTags = async () => {
       life: 3000,
     });
   }
+};
+
+/**
+ * Handle ketika tag dipilih dari dropdown search
+ * @param {Object} tag - Tag object yang dipilih
+ */
+const handleTagSelected = async (tag) => {
+  selectedTagObjects.value = [...selectedTagObjects.value, tag];
+  await handleFilterByTags();
+};
+
+/**
+ * Handle ketika tag dihapus dari selected tags
+ * @param {number} tagId - ID tag yang dihapus
+ */
+const handleTagRemoved = async (tagId) => {
+  selectedTagObjects.value = selectedTagObjects.value.filter(
+    (tag) => tag.id !== tagId,
+  );
+  await handleFilterByTags();
 };
 
 /**
@@ -267,36 +287,19 @@ const handlePageChange = (page) => {
       placeholder="Cari file..."
       @search="performSearch"
     />
-    <section class="flex items-center">
+    <section class="flex items-center gap-4">
       <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
-      <p class="font-semibold text-black ms-2">Filter :</p>
-      <form class="max-w-sm ms-2 flex gap-x-2">
-        <!-- FILTER BY GROUP TAGS -->
-        <!-- <select
-          id="countries"
-          class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
-          v-model="selectedGroupForFilter"
-          @change="handleFilterByCategory"
-        >
-          <option disabled class="text-black">Pilih Tag Group</option>
-          <option v-for="group in tagGroup" :key="group.id" :value="group.id">
-            {{ group.name }}
-          </option>
-        </select> -->
-
-        <!-- Filter by Tags -->
-        <select
-          id="countries"
-          class="block w-full px-3 py-2.5 bg-[#F5FAFF] border border-default-medium text-heading text-xs rounded-base focus:ring-brand focus:border-brand font-semibold shadow-xs placeholder:text-body"
-          v-model="selectedtagsForFilter"
-          @change="handleFilterByTags"
-        >
-          <option value="">Semua tags</option>
-          <option v-for="tag in tags" :key="tag.id" :value="tag.id">
-            {{ tag.name }}
-          </option>
-        </select>
-      </form>
+      <p class="font-semibold text-black">Filter :</p>
+      <div class="flex-1 max-w-md">
+        <TagSearchFilter
+          :tags="tags"
+          :selectedTags="selectedTagObjects"
+          :isLoading="isFilterLoading"
+          placeholder="Cari atau pilih tag..."
+          @tag-selected="handleTagSelected"
+          @tag-removed="handleTagRemoved"
+        />
+      </div>
     </section>
 
     <!-- Datatable Dokumen -->

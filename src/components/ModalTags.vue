@@ -104,7 +104,6 @@ const handleUpdateTag = async () => {
 };
 
 const handleAddTags = async () => {
-  console.log(props.id);
   try {
     const res = await addTags(props.id, form.value.name);
     toast.add({
@@ -116,11 +115,11 @@ const handleAddTags = async () => {
     emit("isSubmit");
     closeModal();
   } catch (error) {
-    console.log(error);
+    console.error(error);
     toast.add({
       severity: "error",
       summary: "Error",
-      detail: error.message || "Gagal memuat dokumen",
+      detail: error.message,
       life: 3000,
     });
   }
@@ -303,7 +302,7 @@ const handleUpdateGroupTags = async () => {
         class="px-4 py-2 flex gap-x-2 items-center bg-green-600/80 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
       >
         <PencilIcon class="size-5 text-white"></PencilIcon>
-        {{ isLoading ? "Edit..." : "Edit" }}
+        {{ isLoading ? "Edit..." : "Simpan" }}
       </button>
     </div>
   </div>

@@ -12,8 +12,8 @@ function handleApiError(error, operation = "Operation") {
   if (error.response) {
     // Server merespons dengan status code error
     const { status, data } = error.response;
-    const serverMessage = data || "Server error";
-    console.error(`[${operation}] Server error (${status}):`, data);
+    const serverMessage = data?.detail || data?.message || "Server error";
+    // console.error(`[${operation}] Server error (${status}):`, data);
     return serverMessage;
   }
 
@@ -79,6 +79,7 @@ export async function addTags(id, data) {
 
     // Error dari API
     const message = handleApiError(error, "addTags");
+    console.log(message);
     throw new Error(message);
   }
 }

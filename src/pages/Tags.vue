@@ -104,7 +104,6 @@ const handleAddTags = (id) => {
   idTagsGroups.value = id;
   modalType.value = "addTags";
   idTags.value = null;
-  console.log(idTagsGroups.value);
 };
 
 const handleUpdateGroupTags = (id) => {
