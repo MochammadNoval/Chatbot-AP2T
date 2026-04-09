@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import logoIconPlus from "./../image/logo-pln-plus.svg";
 import logoPLN from "./../image/pln.svg";
 import Swal from "sweetalert2";
@@ -22,6 +22,21 @@ const isLoadingSessions = ref(false);
 const isLoadingHistory = ref(false);
 const selectedSessionId = ref(null);
 const deletingSessionId = ref(null);
+const chatTitle = ref("");
+const searchQuery = ref("");
+
+// Computed property untuk filter chat sessions berdasarkan search query
+const filteredChatSessions = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return chatSessions.value;
+  }
+
+  const query = searchQuery.value.toLowerCase();
+  return chatSessions.value.filter((session) => {
+    const title = (session.title || `Chat #${session.id}`).toLowerCase();
+    return title.includes(query);
+  });
+});
 
 onMounted(async () => {
   await fetchChatSessions();
@@ -56,6 +71,8 @@ const handleSelectSession = async (session) => {
 
   try {
     const response = await getChatSessionMessages(session.id);
+    chatTitle.value = response.title;
+    chatTitle.value = chatTitle.value.replace(/"/g, "");
 
     // Process messages from API response
     const apiMessages = Array.isArray(response)
@@ -175,7 +192,10 @@ const handleSendMessage = async (e) => {
 
   try {
     // Send message to API
-    const response = await sendChatMessage(userMessage, conversationId.value);
+    const response = await sendChatMessage(
+      userMessage,
+      conversationId.value ? conversationId.value : 0,
+    );
 
     // Add bot response to chat
     if (response && response.response) {
@@ -186,6 +206,7 @@ const handleSendMessage = async (e) => {
         sources: response.sources || response.full_sources || [],
       });
     }
+    conversationId.value = response.conversation_id;
   } catch (error) {
     // Add error message to chat
     messages.value.push({
@@ -243,18 +264,19 @@ const handlePreviewDocument = async (doc) => {
 
 <template>
   <div
-    :class="[
-      'transition-all duration-300 ease-in-out',
-      isExpand ? 'grid grid-cols-[250px_1fr]' : 'w-auto',
-    ]"
+    class="h-screen transition-all duration-300 ease-in-out"
+    :style="{
+      display: 'grid',
+      gridTemplateColumns: isExpand ? '250px 1fr' : '0px 1fr',
+    }"
   >
     <!-- container chat -->
     <section
-      class="py-4 px-2 bg-mainblue/50 transition-all duration-300 ease-in-out h-screen flex flex-col overflow-auto"
-      :class="[
-        'transition-all duration-300 ease-in-out',
-        isExpand ? 'inline-block' : 'hidden',
-      ]"
+      class="py-4 px-2 bg-mainblue/50 transition-all duration-300 ease-in-out h-screen flex flex-col overflow-hidden border-r border-slate-200"
+      :style="{
+        width: isExpand ? '250px' : '0px',
+        opacity: isExpand ? 1 : 0,
+      }"
     >
       <div class="border-b border-gray-400/20 w-full px-3">
         <button
@@ -280,7 +302,7 @@ const handlePreviewDocument = async (doc) => {
         </button>
       </div>
 
-      <form action="" method="POST" class="w-full mt-2 mb-4">
+      <form action="" method="POST" class="w-full mt-2 mb-4" @submit.prevent>
         <label
           for="searchChat"
           class="border border-gray-400/60 rounded-lg px-2 w-full flex gap-x-1 items-center"
@@ -300,10 +322,10 @@ const handlePreviewDocument = async (doc) => {
             />
           </svg>
           <input
+            v-model="searchQuery"
             type="text"
-            name=""
-            id=""
-            class="text-sm text-black py-1 px-1 focus:outline-none focus:ring-0 focus:border-transparent"
+            id="searchChat"
+            class="text-sm text-black py-1 px-1 focus:outline-none focus:ring-0 focus:border-transparent w-full bg-transparent"
             placeholder="Cari chat..."
           />
         </label>
@@ -319,7 +341,7 @@ const handlePreviewDocument = async (doc) => {
         </div>
 
         <div
-          v-for="session in chatSessions"
+          v-for="session in filteredChatSessions"
           :key="session.id"
           @click="handleSelectSession(session)"
           :class="[
@@ -378,21 +400,30 @@ const handlePreviewDocument = async (doc) => {
         </div>
 
         <div
-          v-if="chatSessions.length === 0 && !isLoadingSessions"
+          v-if="filteredChatSessions.length === 0 && !isLoadingSessions"
           class="text-center py-4"
         >
-          <p class="text-gray-400 text-sm">Tidak ada riwayat chat</p>
+          <p class="text-gray-400 text-sm">
+            {{
+              searchQuery ? "Chat tidak ditemukan" : "Tidak ada riwayat chat"
+            }}
+          </p>
         </div>
       </div>
     </section>
 
-    <div class="flex flex-col min-h-screen">
+    <div class="flex flex-col h-screen">
       <!-- Navbar -->
-      <div class="relative bg-mainblue flex items-center p-2">
+      <div
+        class="relative bg-mainblue h-12 flex items-center p-2 border-b border-slate-200"
+      >
         <!-- button minimize chat history bar -->
         <button
           @click="expandSidebarChat"
-          class="absolute -left-2 rounded-full p-2 border border-gray-400/30 shadow-xl bg-mainblue cursor-pointer"
+          class="absolute rounded-full p-2 border border-gray-400/30 shadow-xl bg-mainblue cursor-pointer transition-all duration-300 ease-in-out"
+          :style="{
+            left: isExpand ? '-8px' : '0px',
+          }"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -409,7 +440,7 @@ const handlePreviewDocument = async (doc) => {
             />
           </svg>
         </button>
-        <h1 class="text-black text-lg font-semibold ms-4">Chat Baru</h1>
+        <h1 class="text-black text-lg font-semibold ms-6">{{ chatTitle }}</h1>
       </div>
 
       <!-- Content -->
@@ -530,7 +561,7 @@ const handlePreviewDocument = async (doc) => {
       </section>
 
       <footer
-        class="flex py-5 px-4 bg-mainblue/40 relative items-center"
+        class="flex py-5 px-4 bg-mainblue/40 relative items-center border-t border-slate-200"
         :class="[messages.length > 0 ? 'mt-auto' : 'mt-auto']"
       >
         <form
