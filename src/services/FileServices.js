@@ -25,7 +25,6 @@ export async function getFiles() {
 
 // Get files by array of tag ids
 export async function getFilesById(tagIds) {
-  console.log(tagIds);
   try {
     // Convert array to comma-separated string for query parameter
     const tagIdsParam = Array.isArray(tagIds) ? tagIds.join(",") : tagIds;
@@ -34,7 +33,6 @@ export async function getFilesById(tagIds) {
         tag_ids: tagIdsParam,
       },
     });
-    console.log(response.data);
     return response.data;
   } catch (error) {
     // handling error

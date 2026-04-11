@@ -1,8 +1,10 @@
 <script setup>
 import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
+import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
 import TagSearchFilter from "../components/TagSearchFilter.vue";
 import { useToast } from "primevue/usetoast";
+import { usePreviewModal } from "../composables/usePreviewModal";
 import Swal from "sweetalert2";
 import api from "../services/Api";
 
@@ -26,10 +28,20 @@ import {
 import { useAuthStores } from "../stores/Auth";
 import { getTagGroups, getTags } from "../services/Tags";
 import Pagination from "../components/Pagination.vue";
+
 const useAuth = useAuthStores();
+const toast = useToast();
+const {
+  isOpen: isPreviewOpen,
+  isLoading: isPreviewLoading,
+  error: previewError,
+  previewUrl,
+  selectedDocument: previewDocument,
+  openModal: openPreviewModal,
+  closeModal: closePreviewModal,
+} = usePreviewModal();
 
 const showModal = ref(false);
-const toast = useToast();
 const modalType = ref("category");
 const idDocument = ref(0);
 const tagGroup = ref("");
@@ -70,7 +82,6 @@ const initialize = async () => {
     searchQuery.value = ""; // Reset search query
     currentPage.value = 1; // Reset pagination ke page 1
     useAuth.setLoading(false);
-    console.log(documents.value);
   } catch (error) {
     toast.add({
       severity: "error",
@@ -87,17 +98,21 @@ onMounted(async () => {
   tags.value = await getTags();
 });
 
-// Function untuk preview dokumen di tab baru
-const previewDocument = async (doc) => {
+/**
+ * Handle preview dokumen dengan modal
+ * @param {Object} doc - Dokumen yang akan di-preview
+ */
+const handlePreviewDocument = async (doc) => {
   try {
-    const response = await api.get(`/files/${doc.id}/preview`, {
-      responseType: "blob",
-    });
-
-    const fileURL = URL.createObjectURL(response.data);
-    window.open(fileURL, "_blank");
+    await openPreviewModal(doc);
   } catch (error) {
     console.error("Preview error:", error);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "Gagal membuka preview dokumen",
+      life: 3000,
+    });
   }
 };
 
@@ -142,7 +157,6 @@ const handleDeleteFile = async (id) => {
 };
 
 const handledownloadFile = async (id) => {
-  console.log(id);
   try {
     const res = await downloadFile(id);
   } catch (error) {
@@ -189,7 +203,6 @@ const handleFilterByTags = async () => {
       // Extract tag IDs dari selected tag objects
       const tagIds = selectedTagObjects.value.map((tag) => tag.id);
       const res = await getFilesById(tagIds);
-      console.log(res.files);
       documents.value = res.files || [];
       allDocuments.value = res.files || []; // Simpan data filtered ke allDocuments
     }
@@ -248,6 +261,17 @@ const handlePageChange = (page) => {
       :isOpen="showModal"
       :type="modalType"
       :idDocument="idDocument"
+    />
+
+    <!-- Preview Document Modal -->
+    <PreviewDocumentModal
+      :isOpen="isPreviewOpen"
+      :document="previewDocument"
+      :previewUrl="previewUrl"
+      :isLoading="isPreviewLoading"
+      :error="previewError"
+      @close="closePreviewModal"
+      @download="closePreviewModal"
     />
 
     <section class="flex">
@@ -350,7 +374,7 @@ const handlePageChange = (page) => {
                 <div class="flex justify-center gap-2">
                   <!-- Button Preview -->
                   <button
-                    @click="previewDocument(document)"
+                    @click="handlePreviewDocument(document)"
                     class="p-2 cursor-pointer text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                     title="Preview"
                   >

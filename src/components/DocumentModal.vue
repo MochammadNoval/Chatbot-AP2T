@@ -199,7 +199,7 @@ const handleUpload = () => {
     toast.add({
       severity: "error",
       summary: "Error",
-      detail: "file maksimal 5 MB",
+      detail: "file maksimal 100 MB",
       life: 3000,
     });
     return;
@@ -341,9 +341,12 @@ const closeModal = () => {
         <input
           v-model="formData.filename"
           type="text"
-          placeholder="Masukkan nama file"
+          placeholder="Masukkan nama file (tanpa extension)"
           class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+        <p class="text-xs text-gray-500 mt-1">
+          Format: PDF akan ditambahkan otomatis
+        </p>
       </div>
 
       <!-- Tags -->
@@ -396,10 +399,13 @@ const closeModal = () => {
           :options="tag"
           optionLabel="name"
           optionValue="id"
-          placeholder="Pilih tags..."
+          placeholder="Pilih tags untuk file ini..."
           :multiple="true"
           :hideSelectedItems="true"
         />
+        <p class="text-xs text-gray-500 mt-1">
+          {{ selectedTag.length }} tag dipilih
+        </p>
       </div>
     </div>
 
@@ -412,30 +418,36 @@ const closeModal = () => {
         <input
           v-model="formData.filename"
           type="text"
-          :placeholder="nameFileForPlaceholder"
+          :placeholder="`Nama saat ini: ${nameFileForPlaceholder}`"
           class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
-      <!-- Tags -->
+      <!-- Tags Section -->
       <div>
-        <!-- Selected tags display -->
-        <div v-if="listTagInFile" class="mb-3">
-          <div class="flex flex-wrap gap-2">
+        <!-- Tags Sebelumnya -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Tags File Saat Ini
+          </label>
+          <div
+            v-if="listTagInFile && listTagInFile.length > 0"
+            class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+          >
             <div
               v-for="listTag in listTagInFile"
               :key="listTag"
-              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2"
+              class="px-3 py-1.5 bg-green-100 border border-green-300 text-green-800 rounded-full text-sm font-medium flex items-center gap-2"
             >
               {{ tag.find((t) => t.id === listTag)?.name || listTag.name }}
               <button
                 @click="removeTag(listTag)"
-                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                class="hover:bg-green-300 cursor-pointer rounded-full p-0.5 transition-colors"
                 type="button"
                 title="Hapus tag"
               >
                 <svg
-                  class="size-4 text-blue-800"
+                  class="size-4 text-green-800"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -457,10 +469,17 @@ const closeModal = () => {
               Hapus Semua
             </button>
           </div>
+          <div
+            v-else
+            class="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            File ini belum memiliki tags
+          </div>
         </div>
 
+        <!-- Section untuk Tambah Tags Baru -->
         <label class="block text-sm font-semibold text-gray-700 mb-2">
-          Pilih Tags
+          Tambahkan Tags Baru
         </label>
         <CustomMultiSelect
           @change="listTagInFile"
@@ -468,7 +487,7 @@ const closeModal = () => {
           :options="tag"
           optionLabel="name"
           optionValue="id"
-          placeholder="Pilih tags..."
+          placeholder="Pilih tags tambahan..."
           :multiple="true"
           :hideSelectedItems="true"
         />
