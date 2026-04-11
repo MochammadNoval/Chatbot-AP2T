@@ -157,9 +157,30 @@ const handleDeleteFile = async (id) => {
 };
 
 const handledownloadFile = async (id) => {
+
   try {
+    // 🔹 tampilkan loading toast (tanpa auto close)
+    toast.add({
+      severity: "info",
+      summary: "Download file!",
+      detail: "Proses download file...",
+      life: 0, // ❗ penting → tidak auto close
+    });
+
     const res = await downloadFile(id);
+
+    // 🔹 replace jadi success toast
+    toast.removeAllGroups()
+
+    toast.add({
+      severity: "success",
+      summary: "Berhasil",
+      detail: "File berhasil didownload",
+      life: 3000,
+    });
+
   } catch (error) {
+    // 🔹 hapus loading toast
     toast.add({
       severity: "error",
       summary: "Error",
