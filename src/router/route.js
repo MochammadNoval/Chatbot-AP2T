@@ -9,6 +9,7 @@ import Tags from "../pages/Tags.vue";
 import User from "../pages/User.vue";
 import Profile from "../pages/Profile.vue";
 import NotFound from "../pages/NotFound.vue";
+import Maintenance from "../pages/UnderMaintenance.vue"
 
 import { useAuthStores } from "../stores/Auth";
 
@@ -24,63 +25,59 @@ const routes = [
     children: [{ path: "", component: Login }],
   },
   {
-    path: "/Dashboard",
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "", component: Dashboard }],
-  },
-  {
-    path: "/chat",
-    name: "chat",
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "/chat", component: Chat }],
-  },
-  {
     path: "/document",
     name: "document",
     component: MainLayout,
     meta: { requiresAuth: true },
-    children: [{ path: "/document", component: Document }],
-  },
-  {
-    path: "/tags",
-    name: "tags",
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "/tags", component: Tags }],
-  },
-  {
-    path: "/user",
-    name: "user",
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "/user", component: User }],
-  },
-  {
-    path: "/profile",
-    name: "profile",
-    component: MainLayout,
-    meta: { requiresAuth: true },
-    children: [{ path: "/profile", component: Profile }],
+    children: [
+      {
+        path: "/dashboard",
+        name: "dashboard",
+        component: Dashboard,
+      },
+      {
+        path: "/chat",
+        name: "chat",
+        component: Chat,
+      },
+      {
+        path: "/document",
+        name: "document-home",
+        component: Document,
+      },
+      {
+        path: "/tags",
+        name: "tags",
+        component: Tags,
+      },
+      {
+        path: "/user",
+        name: "user",
+        component: User,
+      },
+      {
+        path: "/profile",
+        name: "profile",
+        component: Profile,
+      },
+    ],
   },
   {
     path: "/talent-management",
     name: "talent-management",
-    component: NotFound,
+    component: Maintenance,
     meta: { requiresAuth: true },
   },
   {
     path: "/setting",
     name: "setting",
-    component: NotFound,
+    component: Maintenance,
     meta: { requiresAuth: true },
   },
   {
-    path: "/profile",
-    name: "profile",
+    path: "/:pathMatch(.*)*",
+    name: "not-found",
     component: NotFound,
-    meta: { requiresAuth: true },
   },
 ];
 

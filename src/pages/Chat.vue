@@ -226,6 +226,52 @@ const formatTime = (date) => {
   return `${hours}:${minutes}`;
 };
 
+const escapeHtml = (text) => {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+
+const formatChatContent = (content) => {
+  if (!content) return "";
+
+  let text = escapeHtml(content);
+  text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/__(.+?)__/g, "<strong>$1</strong>");
+
+  const blocks = text.split(/\n\s*\n/);
+  let html = "";
+
+  blocks.forEach((block) => {
+    const lines = block.split(/\n/);
+    const ordered = lines.every((line) => /^\s*\d+\.\s+/.test(line));
+    const unordered = lines.every((line) => /^\s*[-*]\s+/.test(line));
+
+    if (ordered) {
+      html += '<ol class="list-decimal list-inside ml-4 mb-3">';
+      lines.forEach((line) => {
+        const item = line.replace(/^\s*\d+\.\s+/, "");
+        html += `<li>${item}</li>`;
+      });
+      html += "</ol>";
+    } else if (unordered) {
+      html += '<ul class="list-disc list-inside ml-4 mb-3">';
+      lines.forEach((line) => {
+        const item = line.replace(/^\s*[-*]\s+/, "");
+        html += `<li>${item}</li>`;
+      });
+      html += "</ul>";
+    } else {
+      html += `<p class="mb-2">${lines.join("<br />")}</p>`;
+    }
+  });
+
+  return html;
+};
+
 const formatTimeAgo = (dateString) => {
   const date = new Date(dateString);
   const now = new Date();
@@ -506,7 +552,7 @@ const handlePreviewDocument = async (doc) => {
             <div
               class="bg-mainblue text-black rounded-lg p-3 max-w-xs lg:max-w-md"
             >
-              <p class="text-sm">{{ message.content }}</p>
+              <div class="text-sm prose prose-slate" v-html="formatChatContent(message.content)"></div>
 
               <!-- Document Sources -->
               <div

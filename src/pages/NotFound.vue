@@ -1,3 +1,10 @@
+<script setup>
+const goBack = () => {
+  window.history.back();
+};
+</script>
+
+
 <template>
   <div
     class="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-mainblue/20 to-mainblue/5"
@@ -17,31 +24,10 @@
 
     <!-- Description -->
     <p class="text-gray-500 text-center mb-8 max-w-md">
-      Maaf, halaman yang Anda cari tidak tersedia atau masih dalam pengembangan.
+      Maaf, halaman yang Anda cari tidak tersedia
     </p>
-
-    <!-- Buttons -->
-    <div class="flex gap-4">
-      <router-link
-        to="/dashboard"
-        class="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all"
-      >
-        Kembali ke Dashboard
-      </router-link>
-      <button
-        @click="goBack"
-        class="px-6 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-all"
-      >
-        Kembali
-      </button>
-    </div>
   </div>
 </template>
 
-<script setup>
-const goBack = () => {
-  window.history.back();
-};
-</script>
 
 <style scoped></style>
