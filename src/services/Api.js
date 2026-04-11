@@ -17,10 +17,14 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// Flag untuk mencegah multiple event dispatch
+let isUnauthorized = false;
+
 api.interceptors.response.use((response)=> response,
 (error) => {
   const store = useAuthStores()
-  if (error.response && error.response.status === 401){
+  if (error.response && error.response.status === 401 && !isUnauthorized){
+    isUnauthorized = true; // ✅ Set flag untuk mencegah duplicate
     store.handleUnauthorized()
     window.dispatchEvent(new CustomEvent("auth:expired"))
     window.location.href = "/login";

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ProgressSpinner from "primevue/progressspinner";
 import { useToast } from "primevue/usetoast";
@@ -25,16 +25,26 @@ const visiblePassword = () => {
   showPassword.value = !showPassword.value;
 };
 
-onMounted(() => {
-  window.addEventListener("auth:expired", () => {
+const handleSessionExpired = () => {
+  // ✅ Hanya tampilkan toast sekali
   toast.add({
-      severity: "error",
-      summary: "Session habis",
-      detail: "Silahkan untuk login kembali!",
-      life: 2500,
-    });
-  })
-})
+    severity: "error",
+    summary: "Session habis",
+    detail: "Silahkan untuk login kembali!",
+    life: 2500,
+  });
+};
+
+onMounted(() => {
+  window.addEventListener("auth:expired", handleSessionExpired);
+});
+
+// Cleanup event listener saat component unmounted
+onUnmounted(() => {
+  window.removeEventListener("auth:expired", handleSessionExpired);
+});
+
+
 const handleLogin = async () => {
   errorMessage.value = "";
   loading.value = true;
