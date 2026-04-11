@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useAuthStores } from "../stores/Auth";
 
 const api = axios.create({
   baseURL: "/api",
@@ -18,8 +19,10 @@ api.interceptors.request.use(
 
 api.interceptors.response.use((response)=> response,
 (error) => {
+  const store = useAuthStores()
   if (error.response && error.response.status === 401){
-    localStorage.removeItem("access_token");
+    store.handleUnauthorized()
+    window.dispatchEvent(new CustomEvent("auth:expired"))
     window.location.href = "/login";
   }
   return Promise.reject(error)

@@ -7,6 +7,7 @@ export const useAuthStores = defineStore("auth", {
     isAdmin: false,
     message: null,
     isLoading: false,
+    sessionExpired: false
   }),
   actions: {
     login(user) {
@@ -24,6 +25,12 @@ export const useAuthStores = defineStore("auth", {
       localStorage.removeItem("username");
       localStorage.removeItem("loggedIn");
       localStorage.removeItem("user_id");
+          localStorage.removeItem("access_token");
+    },
+    handleUnauthorized(){
+      if(this.sessionExpired) return;
+      this.sessionExpired = true;
+      this.logout()
     },
     setMessage(msg) {
       this.message = msg;
