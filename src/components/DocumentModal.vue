@@ -124,8 +124,6 @@ const handleFileChange = (event) => {
 };
 
 const handleUpdate = async () => {
-  console.log(listTagInFile.value);
-
   try {
     const result = await Swal.fire({
       title: "Update Dokumen?",

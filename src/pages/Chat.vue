@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
-import logoIconPlus from "./../image/logo-pln-plus.svg";
 import logoPLN from "./../image/pln.svg";
 import Swal from "sweetalert2";
 import {
@@ -91,7 +90,7 @@ const handleSelectSession = async (session) => {
       }
 
       // Parse timestamp if it's a string
-      let timestamp = msg.timestamp ? new Date(msg.timestamp) : new Date();
+      let timestamp = msg.created_at ? new Date(msg.created_at) : new Date();
 
       return {
         type,

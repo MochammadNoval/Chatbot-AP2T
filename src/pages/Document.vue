@@ -23,7 +23,7 @@ import {
   deleteFile,
   getFiles,
   downloadFile,
-  getFilesById,
+  getFilesByTags
 } from "../services/FileServices";
 import { useAuthStores } from "../stores/Auth";
 import { getTagGroups, getTags } from "../services/Tags";
@@ -223,7 +223,7 @@ const handleFilterByTags = async () => {
     } else {
       // Extract tag IDs dari selected tag objects
       const tagIds = selectedTagObjects.value.map((tag) => tag.id);
-      const res = await getFilesById(tagIds);
+      const res = await getFilesByTags(tagIds);
       documents.value = res.files || [];
       allDocuments.value = res.files || []; // Simpan data filtered ke allDocuments
     }

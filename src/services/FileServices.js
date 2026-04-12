@@ -24,7 +24,7 @@ export async function getFiles() {
 }
 
 // Get files by array of tag ids
-export async function getFilesById(tagIds) {
+export async function getFilesByTags(tagIds) {
   try {
     // Convert array to comma-separated string for query parameter
     const tagIdsParam = Array.isArray(tagIds) ? tagIds.join(",") : tagIds;
@@ -49,6 +49,25 @@ export async function getFilesById(tagIds) {
         "Aplikasi mengalami gangguan sementara, Silahkan coba beberapa saat kemudian!";
     }
     throw new Error(fileMessage); // lempar lagi biar bisa ditangkap di component
+  }
+}
+
+export async function getFilesById(id) {
+  try {
+    const response = await api.get(`/files/${id}`);
+    return response.data;
+  } catch (error) {
+    let fileMessage = "Gagal memuat dokumen, Silahkan coba lagi!";
+    if (error.response) {
+      fileMessage =
+        error.response.data?.message || "Terjadi kesalahan pada server, Silahkan coba lagi!";
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet anda, Silahkan coba lagi!";
+    } else {
+      fileMessage =
+        "Aplikasi mengalami gangguan sementara, Silahkan coba beberapa saat kemudian!";
+    }
+    throw new Error(fileMessage);
   }
 }
 
