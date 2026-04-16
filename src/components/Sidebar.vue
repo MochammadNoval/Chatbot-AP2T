@@ -13,16 +13,11 @@ const router = useRouter();
 
 const isExpand = ref(true);
 const route = useRoute();
-const username = ref("");
 const emit = defineEmits(["toggle"]);
 
 const isActive = (path) => {
   return route.path === path;
 };
-
-onMounted(() => {
-  username.value = localStorage.getItem("username");
-});
 
 const handleLogout = () => {
   Swal.fire({
@@ -43,7 +38,7 @@ const handleLogout = () => {
           text: "Anda akan segera di arahkan ke halaman login!",
           icon: "success",
         }).then(() => {
-          localStorage.removeItem("access_token");
+          useAuth.logout();
           router.push("/");
         });
       }, 2000);

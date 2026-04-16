@@ -14,7 +14,7 @@ export const useAuthStores = defineStore("auth", {
       this.username = user.name;
       this.loggedIn = true;
       this.isAdmin = user.isAdmin || false;
-      localStorage.setItem("username", user.username);
+      localStorage.setItem("username", user.name);
       localStorage.setItem("loggedIn", true);
       localStorage.setItem("user_id", user.id);
     },
@@ -25,7 +25,7 @@ export const useAuthStores = defineStore("auth", {
       localStorage.removeItem("username");
       localStorage.removeItem("loggedIn");
       localStorage.removeItem("user_id");
-          localStorage.removeItem("access_token");
+      localStorage.removeItem("access_token");
     },
     handleUnauthorized(){
       if(this.sessionExpired) return;
@@ -42,7 +42,7 @@ export const useAuthStores = defineStore("auth", {
       this.isLoading = value;
     },
     initialize() {
-      this.username = localStorage.getItem("username" || "");
+      this.username = localStorage.getItem("username") || "";
       this.loggedIn = localStorage.getItem("loggedIn") === "true";
     },
   },

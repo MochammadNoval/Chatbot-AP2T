@@ -429,7 +429,7 @@ const closeModal = () => {
               {{
                 formData.file
                   ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB`
-                  : "Max size 5MB & format PDF"
+                  : "Max size 100MB & format PDF"
               }}
             </p>
           </div>
