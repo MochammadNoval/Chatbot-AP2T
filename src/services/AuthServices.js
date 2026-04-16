@@ -26,7 +26,7 @@ export async function Login(user) {
       responseData: response.data,
     };
   } catch (error) {
-    console.error("Login error:", error);
+    //console.error("Login error:", error);
     throw error;
   }
 }

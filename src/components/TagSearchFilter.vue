@@ -87,9 +87,9 @@ const closeDropdown = () => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div class="relative w-full ">
     <!-- Selected Tags Display -->
-    <div v-if="selectedTags.length > 0" class="mb-3 flex flex-wrap gap-2">
+    <div v-if="selectedTags.length > 0" class="mb-3  flex flex-wrap gap-2">
       <div
         v-for="tag in selectedTags"
         :key="tag.id"
@@ -107,10 +107,10 @@ const closeDropdown = () => {
     </div>
 
     <!-- Search Input Container -->
-    <div class="relative" @click.outside="closeDropdown">
-      <div class="relative">
+    <div class="relative " @click.outside="closeDropdown">
+      <div class="relative ">
         <MagnifyingGlassIcon
-          class="absolute left-3 top-3 size-5 text-gray-400"
+          class="absolute left-3 top-2.5 size-5 text-gray-400"
         />
         <input
           type="text"
@@ -119,7 +119,7 @@ const closeDropdown = () => {
           @input="handleSearchInput($event.target.value)"
           @focus="isOpen = true"
           @click="toggleDropdown"
-          class="w-full pl-10 pr-4 py-2.5 bg-[#F5FAFF] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium shadow-sm placeholder:text-gray-500 transition-all"
+          class="w-full pl-10 pr-4 py-2 bg-[#F5FAFF] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium shadow-sm placeholder:text-gray-500 transition-all"
           :class="{ 'focus:ring-2 focus:ring-blue-500': isOpen }"
         />
         <!-- Loading Indicator -->

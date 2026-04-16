@@ -335,7 +335,7 @@ const handlePageChange = (page) => {
     <section class="flex items-center gap-4">
       <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
       <p class="font-semibold text-black">Filter :</p>
-      <div class="flex-1 max-w-md">
+      <div class="flex-1 max-w-md ">
         <TagSearchFilter
           :tags="tags"
           :selectedTags="selectedTagObjects"

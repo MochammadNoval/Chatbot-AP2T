@@ -15,11 +15,17 @@ export function usePreviewModal() {
   /**
    * Buka modal dengan dokumen tertentu
    */
-  const openModal = async (document) => {
+  const openModal = async (document, page = null) => {
+    if (page !== null && typeof page !== "undefined") {
+      document = {
+        ...document,
+        page,
+      };
+    }
     selectedDocument.value = document;
     isOpen.value = true;
     error.value = null;
-    await fetchPreview(document.id);
+    await fetchPreview(document.id, page);
   };
 
   /**
@@ -28,6 +34,7 @@ export function usePreviewModal() {
   const closeModal = () => {
     isOpen.value = false;
     selectedDocument.value = null;
+    revokePreviewUrl();
     previewUrl.value = null;
     error.value = null;
     isLoading.value = false;
@@ -36,17 +43,20 @@ export function usePreviewModal() {
   /**
    * Fetch preview data dari server
    */
-  const fetchPreview = async (fileId) => {
+  const fetchPreview = async (fileId, page = null) => {
     isLoading.value = true;
     error.value = null;
     try {
-      const response = await api.get(`/files/${fileId}/preview`, {
+      const url = `/files/${fileId}/preview${
+        page ? `?page=${encodeURIComponent(page)}` : ""
+      }`;
+      const response = await api.get(url, {
         responseType: "blob",
       });
       
       // Buat object URL dari blob
       const fileURL = URL.createObjectURL(response.data);
-      previewUrl.value = fileURL;
+      previewUrl.value = page ? `${fileURL}#page=${page}` : fileURL;
     } catch (err) {
       error.value =
         err.response?.data?.message ||

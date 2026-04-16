@@ -9,6 +9,8 @@ import {
   deleteSession,
 } from "./../services/ChatService";
 import LoadingSpinner from "./../components/LoadingSpinner.vue";
+import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
+import { usePreviewModal } from "../composables/usePreviewModal";
 import api from "../services/Api";
 
 const isExpand = ref(true);
@@ -23,6 +25,16 @@ const selectedSessionId = ref(null);
 const deletingSessionId = ref(null);
 const chatTitle = ref("");
 const searchQuery = ref("");
+
+const {
+  isOpen: isPreviewOpen,
+  isLoading: isPreviewLoading,
+  error: previewError,
+  previewUrl,
+  selectedDocument: previewDocument,
+  openModal: openPreviewModal,
+  closeModal: closePreviewModal,
+} = usePreviewModal();
 
 // Computed property untuk filter chat sessions berdasarkan search query
 const filteredChatSessions = computed(() => {
@@ -80,6 +92,7 @@ const handleSelectSession = async (session) => {
 
     // Convert API messages to display format
     messages.value = apiMessages.map((msg) => {
+      console.log(msg)
       // Determine message type based on sender
       let type = "bot";
       const sender = (msg.sender || msg.sender_type || "").toLowerCase();
@@ -96,7 +109,7 @@ const handleSelectSession = async (session) => {
         type,
         content: msg.message || msg.content || msg.text || "",
         timestamp,
-        sources: msg.sources || msg.full_sources || [],
+        sources: msg.sources_metadata || msg.full_sources || [],
       };
     });
   } catch (error) {
@@ -287,24 +300,29 @@ const formatTimeAgo = (dateString) => {
   return date.toLocaleDateString("id-ID");
 };
 
-const handlePreviewDocument = async (doc) => {
-  try {
-    const response = await api.get(`/files/${doc}/preview`, {
-      responseType: "blob",
-    });
+const handlePreviewDocument = async (source) => {
+  const fileId = source?.file_id || source?.id || source?.fileId;
+  const page = source?.page ;
 
-    const fileURL = URL.createObjectURL(response.data);
-    window.open(fileURL, "_blank");
+  if (!fileId) {
+    console.error("Preview error: file tidak ditemukan");
+    return;
+  }
+
+  const document = {
+    id: fileId,
+    filename: source?.filename || source?.name || "Dokumen",
+    filesize: source?.filesize || source?.file_size || 0,
+    created_at: source?.created_at || source?.createdAt || null,
+    page,
+  };
+
+  try {
+    await openPreviewModal(document, page);
   } catch (error) {
     console.error("Preview error:", error);
   }
 };
-
-// const handlePreviewDocument = (fileId) => {
-//   // Buka preview dokumen di tab baru menggunakan endpoint API
-//   const previewUrl = `/api/files/preview/${fileId}`;
-//   window.open(previewUrl, "_blank");
-// };
 </script>
 
 <template>
@@ -561,12 +579,12 @@ const handlePreviewDocument = async (doc) => {
                 <p class="text-xs font-semibold text-gray-600 mb-2">
                   Sumber Dokumen:
                 </p>
-                <div class="flex flex-col gap-1">
+                <div class="flex flex-col gap-1 ">
                   <button
                     v-for="(source, idx) in message.sources"
                     :key="idx"
-                    @click="handlePreviewDocument(source.file_id)"
-                    class="text-xs text-blue-600 hover:text-blue-800 hover:underline text-left transition-colors truncate"
+                    @click="handlePreviewDocument(source)"
+                    class="text-xs text-blue-600 hover:text-blue-800 hover:underline text-left transition-colors truncate cursor-pointer"
                     :title="source.filename"
                   >
                     📄 {{ source.filename }}
@@ -644,6 +662,16 @@ const handlePreviewDocument = async (doc) => {
         </form>
       </footer>
     </div>
+
+    <PreviewDocumentModal
+      :isOpen="isPreviewOpen"
+      :document="previewDocument"
+      :previewUrl="previewUrl"
+      :isLoading="isPreviewLoading"
+      :error="previewError"
+      @close="closePreviewModal"
+      @download="closePreviewModal"
+    />
   </div>
 </template>
 

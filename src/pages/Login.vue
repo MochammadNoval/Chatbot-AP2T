@@ -35,9 +35,7 @@ const handleSessionExpired = () => {
   });
 };
 
-onMounted(() => {
-  window.addEventListener("auth:expired", handleSessionExpired);
-});
+
 
 // Cleanup event listener saat component unmounted
 onUnmounted(() => {
