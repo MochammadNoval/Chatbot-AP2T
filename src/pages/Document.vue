@@ -3,6 +3,7 @@ import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
 import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
 import TagSearchFilter from "../components/TagSearchFilter.vue";
+import DownloadProgressBar from "../components/DownloadProgressBar.vue";
 import { useToast } from "primevue/usetoast";
 import { usePreviewModal } from "../composables/usePreviewModal";
 import Swal from "sweetalert2";
@@ -56,6 +57,15 @@ let tags = ref([]);
 let searchQuery = ref(""); // Menyimpan search query
 let currentPage = ref(1); // Halaman saat ini
 const itemsPerPage = 3; // Items per halaman
+
+// Download state management
+const isDownloading = ref(false);
+const downloadProgress = ref(0);
+const downloadFileName = ref("");
+const downloadFileSize = ref(0);
+const downloadedSize = ref(0);
+const downloadStartTime = ref(0);
+let abortController = null;
 
 // Computed untuk paginated documents
 const paginatedDocuments = computed(() => {
@@ -157,34 +167,105 @@ const handleDeleteFile = async (id) => {
 };
 
 const handledownloadFile = async (id) => {
-
   try {
-    // 🔹 tampilkan loading toast (tanpa auto close)
-    toast.add({
-      severity: "info",
-      summary: "Download file!",
-      detail: "Proses download file...",
-      life: 0, // ❗ penting → tidak auto close
-    });
+    // Find document to get file info
+    const document = allDocuments.value.find(doc => doc.id === id) || documents.value.find(doc => doc.id === id);
+    if (!document) {
+      throw new Error("Dokumen tidak ditemukan");
+    }
 
-    const res = await downloadFile(id);
+    // Initialize download state
+    isDownloading.value = true;
+    downloadProgress.value = 0;
+    downloadFileName.value = document.filename;
+    downloadFileSize.value = document.filesize;
+    downloadedSize.value = 0;
+    downloadStartTime.value = Date.now();
 
-    // 🔹 replace jadi success toast
-    toast.removeAllGroups()
+    // Create progress handler
+    const onProgress = (progressEvent) => {
+      downloadProgress.value = progressEvent.percent;
+      downloadedSize.value = progressEvent.loaded;
+    };
 
-    toast.add({
-      severity: "success",
-      summary: "Berhasil",
-      detail: "File berhasil didownload",
-      life: 3000,
-    });
+    // Get download result BEFORE await - abortController available IMMEDIATELY
+    const downloadResult = downloadFile(id, onProgress);
+    abortController = downloadResult.abortController;  // NOW abortController ready!
+
+    // Await the promise
+    await downloadResult.promise;
+
+    // Success state - only if not canceled
+    if (!downloadResult.isCanceled()) {
+      isDownloading.value = false;
+      toast.add({
+        severity: "success",
+        summary: "Berhasil",
+        detail: "File berhasil didownload",
+        life: 3000,
+      });
+
+      // Reset state after delay
+      setTimeout(() => {
+        downloadProgress.value = 0;
+        downloadFileName.value = "";
+        downloadFileSize.value = 0;
+        downloadedSize.value = 0;
+      }, 1000);
+    }
 
   } catch (error) {
-    // 🔹 hapus loading toast
+    isDownloading.value = false;
+    downloadProgress.value = 0;
+    downloadFileName.value = "";
+    downloadFileSize.value = 0;
+    downloadedSize.value = 0;
+
+    // Check if error is user cancel or actual error
+    if (error.message !== "Download dibatalkan oleh user") {
+      toast.add({
+        severity: "error",
+        summary: "Error",
+        detail: error.message || "Gagal mengunduh dokumen",
+        life: 3000,
+      });
+    }
+  }
+};
+
+const handleCancelDownloadRequest = async () => {
+  // Show SweetAlert confirmation dialog
+  const result = await Swal.fire({
+    title: "Batalkan Download?",
+    text: "Apakah Anda yakin ingin membatalkan download file ini?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#ef4444",
+    cancelButtonColor: "#6b7280",
+    confirmButtonText: "Ya, Batalkan",
+    cancelButtonText: "Batal",
+  });
+
+  // Jika user confirm, baru batalkan download
+  if (result.isConfirmed) {
+    handleCancelDownload();
+  }
+};
+
+const handleCancelDownload = () => {
+  if (abortController) {
+    abortController.abort();
+    isDownloading.value = false;
+    downloadProgress.value = 0;
+    downloadFileName.value = "";
+    downloadFileSize.value = 0;
+    downloadedSize.value = 0;
+    abortController = null;
+
     toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: error.message || "Gagal memuat dokumen",
+      severity: "info",
+      summary: "Download dibatalkan",
+      detail: "Download dibatalkan oleh user",
       life: 3000,
     });
   }
@@ -293,6 +374,17 @@ const handlePageChange = (page) => {
       :error="previewError"
       @close="closePreviewModal"
       @download="closePreviewModal"
+    />
+
+    <!-- Download Progress Bar -->
+    <DownloadProgressBar
+      v-if="isDownloading"
+      :fileName="downloadFileName"
+      :progress="downloadProgress"
+      :fileSize="downloadFileSize"
+      :downloadedSize="downloadedSize"
+      :startTime="downloadStartTime"
+      @cancel-request="handleCancelDownloadRequest"
     />
 
     <section class="flex">

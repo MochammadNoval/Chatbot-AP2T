@@ -131,48 +131,107 @@ export async function deleteFile(id) {
   }
 }
 
-export async function downloadFile(id) {
-  try {
-    const response = await api.get(`/files/${id}/download`, {
-      responseType: "blob",
-    });
+export function downloadFile(id, onProgress) {
+  // Create AbortController untuk cancel functionality - RETURN IMMEDIATELY!
+  const abortController = new AbortController();
+  let downloadCanceled = false;
+  let downloadCompleted = false;
 
-    // ambil filename dari header Content-Disposition
-    const contentDisposition = response.headers["content-disposition"];
-    let filename = "file";
+  // Track when abort is called
+  abortController.signal.addEventListener("abort", () => {
+    downloadCanceled = true;
+  });
 
-    if (contentDisposition) {
-      // Handle UTF-8 encoded dan regular filenames
-      const filenameMatch = contentDisposition.match(
-        /filename\*=UTF-8''(.+?)(?:;|$)|filename="?([^";\n]+)"?/,
-      );
-      if (filenameMatch?.[1]) {
-        filename = decodeURIComponent(filenameMatch[1]);
-      } else if (filenameMatch?.[2]) {
-        filename = filenameMatch[2];
+  // Create promise tapi jangan di-await di sini
+  const downloadPromise = (async () => {
+    try {
+      // Double-check cancel status sebelum mulai
+      if (downloadCanceled) {
+        throw new Error("Download dibatalkan oleh user");
       }
-    }
 
-    // buat blob dengan content-type yang sesuai
-    const blob = new Blob([response.data], {
-      type: response.headers["content-type"] || "application/octet-stream",
-    });
-    const url = window.URL.createObjectURL(blob);
+      const response = await api.get(`/files/${id}/download`, {
+        responseType: "blob",
+        signal: abortController.signal,
+        onDownloadProgress: (progressEvent) => {
+          // Jangan lanjut jika sudah di-cancel
+          if (downloadCanceled) return;
+          if (progressEvent.total && onProgress) {
+            const percentComplete = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress({
+              loaded: progressEvent.loaded,
+              total: progressEvent.total,
+              percent: percentComplete,
+            });
+          }
+        },
+      });
 
-    // buat element link dan trigger download
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
+      // Check jika sudah di-cancel sebelum lanjut
+      if (downloadCanceled) {
+        throw new Error("Download dibatalkan oleh user");
+      }
 
-    // bersihkan
-    setTimeout(() => {
+      // ambil filename dari header Content-Disposition
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = "file";
+
+      if (contentDisposition) {
+        // Handle UTF-8 encoded dan regular filenames
+        const filenameMatch = contentDisposition.match(
+          /filename\*=UTF-8''(.+?)(?:;|$)|filename="?([^";\n]+)"?/,
+        );
+        if (filenameMatch?.[1]) {
+          filename = decodeURIComponent(filenameMatch[1]);
+        } else if (filenameMatch?.[2]) {
+          filename = filenameMatch[2];
+        }
+      }
+
+      // buat blob dengan content-type yang sesuai
+      const blob = new Blob([response.data], {
+        type: response.headers["content-type"] || "application/octet-stream",
+      });
+      const url = window.URL.createObjectURL(blob);
+
+      // Check lagi sebelum trigger download
+      if (downloadCanceled) {
+        window.URL.revokeObjectURL(url);
+        throw new Error("Download dibatalkan oleh user");
+      }
+
+      // buat element link dan trigger download
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
-    }, 100);
-  } catch (error) {
-    const message = handleApiError(error, "downloadFile");
-    throw new Error(message);
-  }
+
+      downloadCompleted = true;
+
+      // bersihkan
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+    } catch (error) {
+      // Check if error is from abort
+      if (error.name === "CanceledError" || error.code === "ECONNABORTED" || downloadCanceled || error.message.includes("dibatalkan")) {
+        throw new Error("Download dibatalkan oleh user");
+      }
+
+      const message = handleApiError(error, "downloadFile");
+      throw new Error(message);
+    }
+  })();
+
+  // RETURN IMMEDIATELY dengan abortController dan promise
+  // Component bisa langsung call abortController.abort() tanpa menunggu
+  return { 
+    abortController,
+    promise: downloadPromise,
+    isCompleted: () => downloadCompleted,
+    isCanceled: () => downloadCanceled
+  };
 }

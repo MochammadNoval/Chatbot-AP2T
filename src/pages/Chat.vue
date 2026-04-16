@@ -92,7 +92,6 @@ const handleSelectSession = async (session) => {
 
     // Convert API messages to display format
     messages.value = apiMessages.map((msg) => {
-      console.log(msg)
       // Determine message type based on sender
       let type = "bot";
       const sender = (msg.sender || msg.sender_type || "").toLowerCase();
