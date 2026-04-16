@@ -12,6 +12,7 @@ import CustomMultiSelect from "./CustomMultiSelect.vue";
 import { getTags } from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
 import Swal from "sweetalert2";
+import axios from "axios";
 
 const useAuth = useAuthStores();
 
@@ -40,6 +41,14 @@ const toast = useToast();
 const isDragging = ref(false);
 const fileInput = ref(null);
 const emit = defineEmits(["close", "upload", "completed"]);
+
+// Progress tracking states
+const uploadProgress = ref(0);
+const uploadedSize = ref(0);
+const totalSize = ref(0);
+const uploadStartTime = ref(null);
+const estimatedTimeRemaining = ref(0);
+const uploadCancelSource = ref(null);
 
 const removeTag = (tagId) => {
   const target =
@@ -120,7 +129,12 @@ const onDrop = (event) => {
 
 // Handle file selection
 const handleFileChange = (event) => {
-  formData.value.file = event.target.files[0];
+  const files = event.target.files;
+  if (files && files[0]) {
+    formData.value.file = files[0];
+    // Reset input value so user can select the same file again if needed
+    event.target.value = "";
+  }
 };
 
 const handleUpdate = async () => {
@@ -213,7 +227,22 @@ const uploadToServer = async () => {
     dataFile.append("filename", formData.value.filename);
     dataFile.append("tag_ids", JSON.stringify(selectedTag.value || []));
 
-    const res = await uploadFileAxios(dataFile);
+    // Initialize cancel token for this upload
+    uploadCancelSource.value = axios.CancelToken.source();
+
+    // Initialize progress tracking
+    uploadStartTime.value = Date.now();
+    totalSize.value = formData.value.file.size;
+
+    const res = await uploadFileAxios(dataFile, (progressEvent) => {
+      uploadProgress.value = progressEvent.percent;
+      uploadedSize.value = progressEvent.loaded;
+      estimatedTimeRemaining.value = calculateTimeRemaining(
+        progressEvent.loaded,
+        progressEvent.total
+      );
+    }, uploadCancelSource.value.token);
+
     toast.add({
       severity: "success",
       summary: "Success",
@@ -227,18 +256,89 @@ const uploadToServer = async () => {
       closeModal();
     }, 2000);
   } catch (err) {
+    // Don't show toast if upload was cancelled (already shown in handleCancelUpload)
+    if (err.message !== "Upload dibatalkan") {
+      toast.add({
+        severity: "error",
+        summary: "Error",
+        detail: err.message || "Upload gagal",
+        life: 3000,
+      });
+    }
+    isLoading.value = false;
+    uploadCancelSource.value = null;
+  }
+};
+
+// Format bytes to readable format (KB, MB, GB)
+const formatBytes = (bytes) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+};
+
+// Format seconds to human-readable time
+const formatTimeRemaining = (seconds) => {
+  if (seconds <= 0) return "Calculating...";
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  } else if (minutes > 0) {
+    return `${minutes}m ${secs}s`;
+  } else {
+    return `${secs}s`;
+  }
+};
+
+// Calculate estimated time remaining
+const calculateTimeRemaining = (loaded, total) => {
+  if (!uploadStartTime.value) return 0;
+  
+  const elapsedTime = (Date.now() - uploadStartTime.value) / 1000; // in seconds
+  const uploadSpeed = loaded / elapsedTime; // bytes per second
+  
+  if (uploadSpeed === 0) return 0;
+  
+  const remainingBytes = total - loaded;
+  const remainingTime = remainingBytes / uploadSpeed;
+  
+  return remainingTime;
+};
+
+// Handle cancel upload
+const handleCancelUpload = () => {
+  if (uploadCancelSource.value) {
+    uploadCancelSource.value.cancel("Upload dibatalkan oleh user");
+    uploadCancelSource.value = null;
+    isLoading.value = false;
+    uploadProgress.value = 0;
+    uploadedSize.value = 0;
+    totalSize.value = 0;
+    uploadStartTime.value = null;
+    estimatedTimeRemaining.value = 0;
     toast.add({
-      severity: "error",
-      summary: "Error",
-      detail: err.message || "Upload gagal",
+      severity: "info",
+      summary: "Info",
+      detail: "Upload dibatalkan",
       life: 3000,
     });
-    isLoading.value = false;
   }
 };
 
 // Reset and close modal
 const closeModal = () => {
+  // Auto-cancel upload if there's an ongoing upload
+  if (uploadCancelSource.value && uploadProgress.value > 0) {
+    handleCancelUpload();
+    return;
+  }
+
   formData.value = {
     fileName: "",
     category: "",
@@ -246,6 +346,12 @@ const closeModal = () => {
     file: null,
   };
   selectedTag.value = 0;
+  uploadProgress.value = 0;
+  uploadedSize.value = 0;
+  totalSize.value = 0;
+  uploadStartTime.value = null;
+  estimatedTimeRemaining.value = 0;
+  uploadCancelSource.value = null;
   emit("close");
 };
 </script>
@@ -262,7 +368,7 @@ const closeModal = () => {
   <!-- Modal -->
   <div
     v-if="props.isOpen"
-    class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-scroll"
+    class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-auto max-h-[90vh]"
   >
     <Toast />
     <!-- Modal Header -->
@@ -274,18 +380,16 @@ const closeModal = () => {
       </h2>
       <button
         @click="closeModal"
-        :disabled="isLoading"
-        class="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="text-gray-400 hover:text-gray-600 transition-colors"
       >
         <XCircleIcon
           class="size-7 text-red-500 cursor-pointer"
-          :class="{ 'opacity-50': isLoading }"
         ></XCircleIcon>
       </button>
     </div>
 
     <!-- Modal Upload Document Body -->
-    <div class="p-6 space-y-4" v-if="props.type === 'UploadDocument'">
+    <div class="p-6 space-y-4" v-if="props.type === 'UploadDocument' && uploadProgress === 0">
       <!-- File Input -->
       <div>
         <label
@@ -303,13 +407,13 @@ const closeModal = () => {
           @dragover.prevent="onDragOver"
           @dragleave.prevent="onDragLeave"
           @drop.prevent="onDrop"
-          @click="fileInput.click()"
+          @click.stop="fileInput.click()"
         >
           <input
             ref="fileInput"
             type="file"
             @change="handleFileChange"
-            class="w-full opacity-0 absolute cursor-pointer"
+            class="hidden"
             aria-label="Upload file"
             id="uploadFile"
           />
@@ -493,33 +597,98 @@ const closeModal = () => {
     </div>
 
     <!-- Modal Footer -->
-    <div class="flex gap-3 justify-end p-6 border-t border-gray-200">
-      <button
-        @click="closeModal"
-        :disabled="isLoading"
-        class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors font-medium"
-      >
-        Batal
-      </button>
-      <button
-        @click="props.type === 'editDocument' ? handleUpdate() : handleUpload()"
-        :disabled="isLoading"
-        class="px-4 py-2 flex gap-x-2 items-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
-      >
-        <ProgressSpinner
-          v-if="isLoading"
-          style="width: 25px; height: 25px"
-          strokeWidth="8"
-          fill="transparent"
-          aria-label="Custom ProgressSpinner"
-        />
-        <div v-else class="flex gap-x-2 items-center">
-          <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
-          <p>{{ props.type === "editDocument" ? "Simpan" : "upload" }}</p>
+    <div class="flex flex-col gap-3 p-6 border-t border-gray-200">
+      <!-- Progress Section (visible during upload) -->
+      <div v-if="isLoading && uploadProgress > 0" class="space-y-2 overflow-hidden">
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div
+            class="bg-blue-600 h-full transition-all duration-300 ease-out"
+            :style="{ width: uploadProgress + '%' }"
+          ></div>
         </div>
-      </button>
+
+        <!-- Progress Stats -->
+        <div class="grid grid-cols-3 gap-2 text-xs text-gray-600">
+          <div class="text-center">
+            <p class="font-semibold text-lg text-gray-900">{{ uploadProgress }}%</p>
+            <p>Progress</p>
+          </div>
+          <div class="text-center">
+            <p class="font-semibold text-gray-900">
+              {{ formatBytes(uploadedSize) }}/{{ formatBytes(totalSize) }}
+            </p>
+            <p>Uploaded</p>
+          </div>
+          <div class="text-center">
+            <p class="font-semibold text-gray-900">
+              {{ formatTimeRemaining(estimatedTimeRemaining) }}
+            </p>
+            <p>Remaining</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3 justify-end">
+        <!-- Dynamic Cancel/Close Button --->
+        <button
+          @click="uploadProgress > 0 ? handleCancelUpload() : closeModal()"
+          :class="{
+            'text-red-700 border-red-300 hover:bg-red-50': uploadProgress > 0,
+            'text-gray-700 border-gray-300 hover:bg-gray-50': uploadProgress === 0,
+          }"
+          class="px-4 py-2 border rounded-lg transition-colors font-medium"
+        >
+          {{ uploadProgress > 0 ? "Batalkan Upload" : "Batal" }}
+        </button>
+
+        <!-- Upload/Save Button -->
+        <button
+          @click="props.type === 'editDocument' ? handleUpdate() : handleUpload()"
+          :disabled="isLoading && uploadProgress > 0"
+          class="px-4 py-2 flex gap-x-2 items-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
+        >
+          <ProgressSpinner
+            v-if="isLoading && uploadProgress === 0"
+            style="width: 25px; height: 25px"
+            strokeWidth="8"
+            fill="transparent"
+            aria-label="Custom ProgressSpinner"
+          />
+          <div v-else class="flex gap-x-2 items-center">
+            <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
+            <p>{{ props.type === "editDocument" ? "Simpan" : "upload" }}</p>
+          </div>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+/* Firefox scrollbar */
+html {
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  scrollbar-width: thin;
+}
+</style>

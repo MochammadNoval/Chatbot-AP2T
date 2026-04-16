@@ -1,5 +1,6 @@
 import { handleApiError } from "../utils/MessageError";
 import api from "./Api";
+import axios from "axios";
 
 export async function getFiles() {
   try {
@@ -71,18 +72,29 @@ export async function getFilesById(id) {
   }
 }
 
-export async function uploadFileAxios(formData) {
+export async function uploadFileAxios(formData, onProgress, cancelToken = null) {
   try {
     const response = await api.post("/files/upload", formData, {
       onUploadProgress: (e) => {
-        if (e.total) {
+        if (e.total && onProgress) {
           const percent = Math.round((e.loaded * 100) / e.total);
+          onProgress({
+            percent,
+            loaded: e.loaded,
+            total: e.total,
+          });
         }
       },
+      cancelToken: cancelToken,
     });
 
     return response; // kalau sukses
   } catch (error) {
+    // Check if upload was cancelled
+    if (axios.isCancel(error)) {
+      throw new Error("Upload dibatalkan");
+    }
+
     // handling error
     let fileMessage = "Upload gagal, Silahkan coba lagi!";
     // error dari server (4xx / 5xx)

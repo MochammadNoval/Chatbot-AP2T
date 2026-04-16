@@ -86,7 +86,7 @@ const handleCancel = () => {
     <!-- Progress Bar -->
     <div class="w-full bg-gray-200 rounded-full h-2 mb-3 overflow-hidden">
       <div
-        class="bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-300"
+        class="bg-linear-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-300"
         :style="{ width: `${progress}%` }"
       ></div>
     </div>

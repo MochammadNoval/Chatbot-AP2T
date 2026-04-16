@@ -419,7 +419,7 @@ const handlePreviewDocument = async (source) => {
             viewBox="0 0 24 24"
             stroke-width="1.5"
             stroke="currentColor"
-            class="size-5 text-blue-500 flex-shrink-0"
+            class="size-5 text-blue-500 shrink-0"
           >
             <path
               stroke-linecap="round"
@@ -441,7 +441,7 @@ const handlePreviewDocument = async (source) => {
           <button
             @click="handleDeleteSession(session, $event)"
             :disabled="deletingSessionId === session.id"
-            class="flex-shrink-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/70 p-1.5 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
+            class="shrink-0 opacity-0 group-hover:opacity-100 hover:bg-red-500/70 p-1.5 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer"
             title="Hapus percakapan"
           >
             <svg
