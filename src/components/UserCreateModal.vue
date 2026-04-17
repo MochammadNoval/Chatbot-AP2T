@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive, watch } from "vue";
-import { XCircleIcon, UserPlusIcon } from "@heroicons/vue/24/outline";
+import { ref, reactive, watch, computed } from "vue";
+import { XCircleIcon, UserPlusIcon, EyeIcon, EyeSlashIcon } from "@heroicons/vue/24/outline";
 import Swal from "sweetalert2";
 import { createUser, updateUser } from "../services/User";
 import {
@@ -33,9 +33,20 @@ const formData = reactive({
   email: "",
   name: "",
   password: "",
+  confirmPassword: "",
 });
 
 const isLoading = ref(false);
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
+
+// Password requirements
+const passwordRequirements = computed(() => ({
+  minLength: formData.password.length >= 8,
+  hasUpperCase: /[A-Z]/.test(formData.password),
+  hasNumber: /[0-9]/.test(formData.password),
+  hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password),
+}));
 
 /**
  * Reset form ke state awal
@@ -44,6 +55,9 @@ const resetForm = () => {
   formData.email = "";
   formData.name = "";
   formData.password = "";
+  formData.confirmPassword = "";
+  showPassword.value = false;
+  showConfirmPassword.value = false;
 };
 
 /**
@@ -117,6 +131,28 @@ const validateForm = () => {
       Swal.fire({
         title: "Validasi Gagal",
         text: "Password tidak boleh kosong",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+      });
+      return false;
+    }
+
+    // Validasi confirm password kosong
+    if (!formData.confirmPassword) {
+      Swal.fire({
+        title: "Validasi Gagal",
+        text: "Konfirmasi password tidak boleh kosong",
+        icon: "error",
+        confirmButtonColor: "#3b82f6",
+      });
+      return false;
+    }
+
+    // Validasi password dan confirm password cocok
+    if (formData.password !== formData.confirmPassword) {
+      Swal.fire({
+        title: "Validasi Gagal",
+        text: "Password dan konfirmasi password tidak cocok",
         icon: "error",
         confirmButtonColor: "#3b82f6",
       });
@@ -311,26 +347,80 @@ const closeModal = () => {
             >(Opsional - kosongkan jika tidak ingin mengubah)</span
           >
         </label>
-        <input
-          v-model="formData.password"
-          type="password"
-          :placeholder="
-            isEditMode
-              ? 'Kosongkan jika tidak ingin mengubah password'
-              : 'Masukkan password (min. 8 karakter)'
-          "
-          class="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
-          :disabled="isLoading"
-        />
+        <div class="relative">
+          <input
+            v-model="formData.password"
+            :type="showPassword ? 'text' : 'password'"
+            :placeholder="
+              isEditMode
+                ? 'Kosongkan jika tidak ingin mengubah password'
+                : 'Masukkan password (min. 8 karakter)'
+            "
+            class="w-full px-3 py-2 pr-10 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            :disabled="isLoading"
+          />
+          <button
+            type="button"
+            @click="showPassword = !showPassword"
+            :disabled="isLoading"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :title="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+          >
+            <EyeIcon v-if="!showPassword" class="size-5" />
+            <EyeSlashIcon v-else class="size-5" />
+          </button>
+        </div>
         <p class="text-xs text-gray-500 mt-2">
           Password harus mengandung:<br />
           <span class="inline-block mt-1">
-            ✓ Minimal 8 karakter<br />
-            ✓ Huruf kapital (A-Z)<br />
-            ✓ Angka (0-9)<br />
-            ✓ Simbol khusus (!@#$%^&* dll)
+            <div :class="passwordRequirements.minLength ? 'text-green-600' : 'text-red-600'">
+              ✓ Minimal 8 karakter
+            </div>
+            <div :class="passwordRequirements.hasUpperCase ? 'text-green-600' : 'text-red-600'">
+              ✓ Huruf kapital (A-Z)
+            </div>
+            <div :class="passwordRequirements.hasNumber ? 'text-green-600' : 'text-red-600'">
+              ✓ Angka (0-9)
+            </div>
+            <div :class="passwordRequirements.hasSpecialChar ? 'text-green-600' : 'text-red-600'">
+              ✓ Simbol khusus (!@#$%^&* dll)
+            </div>
           </span>
         </p>
+      </div>
+
+      <!-- Confirm Password Field -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Konfirmasi Password
+          <span v-if="!isEditMode" class="text-red-500">*</span>
+          <span v-else class="text-gray-500 text-xs"
+            >(Opsional - kosongkan jika tidak ingin mengubah)</span
+          >
+        </label>
+        <div class="relative">
+          <input
+            v-model="formData.confirmPassword"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            :placeholder="
+              isEditMode
+                ? 'Kosongkan jika tidak ingin mengubah password'
+                : 'Ulangi password'
+            "
+            class="w-full px-3 py-2 pr-10 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            :disabled="isLoading"
+          />
+          <button
+            type="button"
+            @click="showConfirmPassword = !showConfirmPassword"
+            :disabled="isLoading"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            :title="showConfirmPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+          >
+            <EyeIcon v-if="!showConfirmPassword" class="size-5" />
+            <EyeSlashIcon v-else class="size-5" />
+          </button>
+        </div>
       </div>
     </div>
 

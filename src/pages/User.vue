@@ -7,7 +7,10 @@ import Pagination from "../components/Pagination.vue";
 import { ref, onMounted, computed } from "vue";
 import { getUsers, deleteUser } from "../services/User";
 import { formatDate } from "../helpers/helper";
+import { useAuthStores } from "../stores/Auth";
 
+
+const useAuth = useAuthStores()
 // State
 const showModal = ref(false);
 const isLoadingUsers = ref(false);
@@ -18,6 +21,16 @@ const selectedUser = ref(null);
 const currentPage = ref(1); // Halaman saat ini
 const itemsPerPage = 5; // Items per halaman
 const searchQuery = ref(""); // State untuk tracking search query
+
+// const initialize = () => {
+//   try {
+//     useAuth.setLoading(true);
+//     const res = await getUsers();
+//     useAuth.setLoading(false);
+//   } catch (error) {
+    
+//   }
+// }
 
 // Computed untuk paginated users
 const paginatedUsers = computed(() => {
@@ -30,6 +43,7 @@ const paginatedUsers = computed(() => {
  * Fetch daftar user dari API
  */
 const fetchUsers = async () => {
+  useAuth.setLoading(true)
   isLoadingUsers.value = true;
   try {
     users.value = await getUsers();
@@ -44,7 +58,7 @@ const fetchUsers = async () => {
       confirmButtonColor: "#3b82f6",
     });
   } finally {
-    isLoadingUsers.value = false;
+    useAuth.setLoading(false)
   }
 };
 
@@ -221,12 +235,12 @@ onMounted(() => {
     <!-- Users Table -->
     <section class="mt-4">
       <!-- Loading State -->
-      <div v-if="isLoadingUsers" class="p-8 text-center">
+      <!-- <div v-if="isLoadingUsers" class="p-8 text-center">
         <p class="text-gray-500">Memuat data user...</p>
-      </div>
+      </div> -->
 
       <!-- Empty State -->
-      <div v-else-if="users.length === 0" class="text-center py-8 mt-4">
+      <div v-if="users.length === 0 " class="text-center py-8 mt-4">
         <p class="text-gray-500 text-sm">Tidak ada data user</p>
       </div>
 
