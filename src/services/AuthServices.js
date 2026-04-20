@@ -2,31 +2,55 @@ import axios from "axios";
 import api from "./Api";
 import { useAuthStores } from "../stores/Auth";
 
+/**
+ * Login dengan email dan password
+ * Menangani response: { access_token, refresh_token, expires_in }
+ */
 export async function Login(user) {
   const useAuth = useAuthStores();
   try {
+    // Clear stale tokens sebelum login baru
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("token_expiry_time");
+    useAuth.logout();
+    
+    // POST ke /auth/login
     const response = await api.post("/auth/login", user);
+    const { access_token, refresh_token, expires_in } = response.data;
 
-    const accessToken = response.data?.access_token;
-
-    if (!accessToken) {
-      throw new Error("Login gagal: access_token tidak ada");
+    if (!access_token) {
+      throw new Error("Login gagal: Backend tidak return access_token");
     }
 
-    // simpan token
-    localStorage.setItem("access_token", accessToken);
+    // Calculate expiry time: gunakan expires_in dari backend (dalam detik)
+    // Default 900 detik (15 menit) jika backend tidak provide
+    const expiryTime = Date.now() + ((expires_in || 900) * 1000);
 
-    // ambil data user
+    // Simpan tokens ke localStorage
+    localStorage.setItem("access_token", access_token);
+    localStorage.setItem("token_expiry_time", expiryTime.toString());
+    
+    // Simpan refresh_token jika ada
+    if (refresh_token) {
+      localStorage.setItem("refresh_token", refresh_token);
+    }
+
+    // Ambil user data dari /auth/me
     const userData = await getCurrentUser();
 
-    useAuth.login(userData);
+    // Update Pinia auth store
+    useAuth.login(userData, {
+      access_token,
+      refresh_token,
+      expires_in: expires_in || 900
+    });
 
     return {
       userData,
       responseData: response.data,
     };
   } catch (error) {
-    //console.error("Login error:", error);
     throw error;
   }
 }
@@ -35,6 +59,37 @@ export async function getCurrentUser() {
   try {
     const response = await api.get("/auth/me");
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Refresh access token menggunakan refresh token
+ * Mengembalikan: { access_token, refresh_token, expires_in }
+ */
+export async function refreshToken(refreshTokenValue) {
+  try {
+    if (!refreshTokenValue) {
+      throw new Error("Refresh token tidak ada");
+    }
+
+    // Bypass Api interceptor dengan axios langsung untuk avoid infinite loop
+    const response = await axios.post("/api/auth/refresh", {
+      refresh_token: refreshTokenValue
+    });
+
+    const { access_token, refresh_token, expires_in } = response.data;
+
+    if (!access_token) {
+      throw new Error("Token refresh gagal: Backend tidak return access_token");
+    }
+
+    return {
+      access_token,
+      refresh_token,
+      expires_in
+    };
   } catch (error) {
     throw error;
   }
@@ -167,3 +222,4 @@ export async function registerUser(userData) {
     throw error;
   }
 }
+

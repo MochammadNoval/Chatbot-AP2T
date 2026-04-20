@@ -9,7 +9,7 @@ import {
 } from "../services/FileServices";
 import { useRouter } from "vue-router";
 import CustomMultiSelect from "./CustomMultiSelect.vue";
-import { getTags } from "../services/Tags";
+import { getTagGroups, getTags } from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -31,8 +31,11 @@ const props = defineProps({
   },
 });
 
+const groupTag = ref([])
 const tag = ref([]);
 const selectedTag = ref([]);
+const selectedGroupTag = ref([]);
+
 const nameFileForPlaceholder = ref("");
 const fileById = ref("");
 const listTagInFile = ref([]);
@@ -68,6 +71,20 @@ const clearAllTags = () => {
   listTagInFile.value = [];
 };
 
+const clearAllGroupTags = () => {
+  selectedGroupTag.value = [];
+  listTagInFile.value = [];
+};
+
+// Clear/cancel selected file
+const clearFile = () => {
+  formData.value.file = null;
+  formData.value.filename = "";
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+};
+
 const formData = ref({
   filename: "",
   tag_ids: "",
@@ -97,6 +114,8 @@ watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
 onMounted(async () => {
   try {
     tag.value = await getTags();
+    groupTag.value = await getTagGroups()
+    console.log(groupTag.value, tag.value)
   } catch (error) {
     toast.add({
       severity: "error",
@@ -124,7 +143,13 @@ const onDrop = (event) => {
   const files = Array.from(event.dataTransfer.files);
   if (!files.length) return;
 
-  formData.value.file = files[0]; // ambil file pertama
+  if(files && files[0]){
+    formData.value.file = files[0]; // ambil file perta ma
+    formData.value.filename = "";
+    // Reset input value
+    event.target.value = null;
+  }
+
 };
 
 // Handle file selection
@@ -132,6 +157,7 @@ const handleFileChange = (event) => {
   const files = event.target.files;
   if (files && files[0]) {
     formData.value.file = files[0];
+    formData.value.filename = "";
     // Reset input value so user can select the same file again if needed
     event.target.value = "";
   }
@@ -251,6 +277,16 @@ const uploadToServer = async () => {
     });
 
     isLoading.value = false;
+    
+    // Reset file input element dan formData secara langsung
+    if (fileInput.value) {
+      fileInput.value.value = "";
+    }
+    
+    // Reset formData.file agar UI tidak menampilkan file lagi
+    formData.value.file = null;
+    formData.value.filename = "";
+    
     setTimeout(() => {
       emit("completed");
       closeModal();
@@ -267,7 +303,7 @@ const uploadToServer = async () => {
     }
     isLoading.value = false;
     uploadCancelSource.value = null;
-  }
+  } 
 };
 
 // Format bytes to readable format (KB, MB, GB)
@@ -322,6 +358,14 @@ const handleCancelUpload = () => {
     totalSize.value = 0;
     uploadStartTime.value = null;
     estimatedTimeRemaining.value = 0;
+    
+    // Reset file ketika upload dibatalkan
+    if (fileInput.value) {
+      fileInput.value.value = "";
+    }
+    formData.value.file = null;
+    formData.value.filename = "";
+    
     toast.add({
       severity: "info",
       summary: "Info",
@@ -339,13 +383,18 @@ const closeModal = () => {
     return;
   }
 
+  // Reset file input element
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+
   formData.value = {
-    fileName: "",
-    category: "",
-    tags: "",
+    filename: "",
     file: null,
   };
-  selectedTag.value = 0;
+  selectedTag.value = [];
+  selectedGroupTag.value = [];
+
   uploadProgress.value = 0;
   uploadedSize.value = 0;
   totalSize.value = 0;
@@ -433,6 +482,18 @@ const closeModal = () => {
               }}
             </p>
           </div>
+          
+          <!-- Close button untuk membatalkan file -->
+          <button
+            v-if="formData.file"
+            @click.stop="clearFile"
+            class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+            type="button"
+            title="Batalkan file"
+          >
+            <XCircleIcon class="size-4" />
+            Batalkan File
+          </button>
         </div>
       </div>
 
@@ -451,11 +512,63 @@ const closeModal = () => {
         </p>
       </div>
 
-      <!-- Tags -->
+      <!-- Group Tags -->
       <div>
-        <!-- Selected tags display -->
-        <div v-if="selectedTag.length > 0" class="mb-3">
+        <!-- Selected group tags display -->
+        <div v-if="selectedGroupTag.length > 0" class="mb-3 border border-green-400">
           <div class="flex flex-wrap gap-2">
+            <div
+              v-for="selected in selectedGroupTag"
+              :key="selected"
+              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2 "
+            >
+              {{ groupTag.find((t) => t.id === selected)?.name || selected }}
+              <button
+                @click="removeTag(selected)"
+                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-blue-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              @click="clearAllGroupTags"
+              class="ml-auto text-xs cursor-pointer text-red-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
+          </div>
+        </div>
+
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Pilih Group Tags
+        </label>
+        <CustomMultiSelect
+          v-model="selectedGroupTag"
+          :options="groupTag"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags untuk file ini..."
+          :multiple="true"
+          :hideSelectedItems="true"
+        />
+
+        <!-- section Tag -->
+        <div class="flex flex-wrap gap-2 mt-4 ">
             <div
               v-for="selected in selectedTag"
               :key="selected"
@@ -483,17 +596,10 @@ const closeModal = () => {
                 </svg>
               </button>
             </div>
-            <button
-              @click="clearAllTags"
-              class="ml-auto text-xs cursor-pointer text-gray-500 hover:text-gray-700 underline transition-colors"
-              type="button"
-            >
-              Hapus Semua
-            </button>
           </div>
-        </div>
 
-        <label class="block text-sm font-semibold text-gray-700 mb-2">
+        <!-- Select Tags berdasarkan GroupTags yang dipilih -->
+        <label class="block text-sm font-semibold text-gray-700 mb-2 mt-2">
           Pilih Tags
         </label>
         <CustomMultiSelect

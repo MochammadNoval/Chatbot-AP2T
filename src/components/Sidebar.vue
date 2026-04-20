@@ -55,16 +55,29 @@ const handleExpand = () => {
 
 <template>
   <div
-    class="py-4 px-6 bg-mainblue flex flex-col max-h-screen border-r border-slate-200"
+    class="py-4 px-6 bg-mainblue flex flex-col max-h-screen border-r border-slate-200 ease-in-out"
+    :class="{
+      'w-64': isExpand,
+      'w-24': !isExpand,
+    }"
+    style="transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1) 300ms"
   >
-    <header class="flex gap-x-2 p-2 my-auto border-b border-slate-400/50">
-      <img :src="isExpand ? logoIconPlus : logoPLN" alt="" class="w-20" />
+    <header class="flex gap-x-2 p-2 my-auto border-b border-slate-400/50 transition-all duration-300 ease-in-out">
+      <img 
+        :src="isExpand ? logoIconPlus : logoPLN" 
+        alt="" 
+        :class="{
+          'w-20': isExpand,
+          'w-12': !isExpand,
+        }" 
+        class="transition-all duration-300 ease-in-out"
+      />
       <!-- <p :hidden="!isExpand" class="text-blue-500 font-semibold text-xl ms-2">
         AI Chat
       </p> -->
     </header>
 
-    <div class="py-3 flex-1 overflow-y-auto">
+    <div class="py-3 flex-1 overflow-y-auto transition-all duration-300 ease-in-out" style="transition-delay: 300ms">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
@@ -72,7 +85,10 @@ const handleExpand = () => {
         stroke-width="1.5"
         stroke="currentColor"
         @click="handleExpand"
-        class="size-5 ms-auto text-slate-400 cursor-pointer"
+        class="size-5 ms-auto text-slate-400 cursor-pointer transition-all duration-500 ease-in-out"
+        :class="{
+          'rotate-180': !isExpand,
+        }"
       >
         <path
           stroke-linecap="round"
@@ -84,7 +100,7 @@ const handleExpand = () => {
       <ul class="text-md mt-4 space-y-1.5">
         <router-link
           to="/dashboard"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/dashboard')
               ? 'bg-blue-500 text-white'
@@ -92,7 +108,7 @@ const handleExpand = () => {
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/dashboard') && isExpand,
             }"
@@ -113,10 +129,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+                class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Dashboard
@@ -126,13 +142,13 @@ const handleExpand = () => {
 
         <router-link
           to="/chat"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/chat') ? 'bg-blue-500 text-white' : 'text-slate-700/80'
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/chat') && isExpand,
             }"
@@ -153,10 +169,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Chat
@@ -166,7 +182,7 @@ const handleExpand = () => {
 
         <router-link
           to="/document"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/document') || isActive('/tags')
               ? 'bg-blue-500 text-white'
@@ -174,7 +190,7 @@ const handleExpand = () => {
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]':
                 (isActive('/document') || isActive('/tags')) && isExpand,
@@ -196,10 +212,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Document
@@ -208,13 +224,13 @@ const handleExpand = () => {
         </router-link>
         <router-link
           to="/user"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/user') ? 'bg-blue-500 text-white' : 'text-slate-700/80'
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/user') && isExpand,
               'translate-x-0': isActive('/user') && !isExpand,
@@ -236,10 +252,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               User
@@ -249,7 +265,7 @@ const handleExpand = () => {
 
         <router-link
           to="/talent-management"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/talent-management')
               ? 'bg-blue-500 text-white'
@@ -257,7 +273,7 @@ const handleExpand = () => {
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/talent-management') && isExpand,
               'translate-x-0': isActive('/talent-management') && !isExpand,
@@ -266,10 +282,10 @@ const handleExpand = () => {
             <folder-icon class="size-6 group-hover:text-white" />
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Talent Management
@@ -279,7 +295,7 @@ const handleExpand = () => {
 
         <router-link
           to="/profile"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/profile')
               ? 'bg-blue-500 text-white'
@@ -287,7 +303,7 @@ const handleExpand = () => {
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/profile') && isExpand,
               'translate-x-0': isActive('/profile') && !isExpand,
@@ -309,10 +325,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Profile
@@ -322,7 +338,7 @@ const handleExpand = () => {
 
         <router-link
           to="/setting"
-          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
             isActive('/setting')
               ? 'bg-blue-500 text-white'
@@ -330,7 +346,7 @@ const handleExpand = () => {
           "
         >
           <div
-            class="flex items-center gap-2 transition-all duration-300 ease-in-out"
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
               'translate-x-[30%]': isActive('/setting') && isExpand,
               'translate-x-0': isActive('/setting') && !isExpand,
@@ -357,10 +373,10 @@ const handleExpand = () => {
             </svg>
 
             <p
-              class="font-semibold group-hover:text-white transition-opacity duration-300"
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
               :class="{
-                'opacity-100': isExpand,
-                'opacity-0': !isExpand,
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
               Setting
@@ -371,12 +387,13 @@ const handleExpand = () => {
     </div>
 
     <footer
-      class="flex py-3 px-2 w-full border-t border-slate-400/50 relative mt-auto"
+      class="flex py-3 px-2 w-full border-t border-slate-400/50 relative mt-auto transition-all duration-300 ease-in-out"
+      style="transition-delay: 300ms"
     >
       <div>
         <p class="text-blue-500 rounded-full px-3.5 py-2 bg-blue-300/20">A</p>
       </div>
-      <span :hidden="!isExpand" class="ms-2">
+      <span :hidden="!isExpand" class="ms-2 transition-all duration-300 ease-in-out" style="transition-delay: 300ms">
         <p class="font-bold text-black text-md">{{ useAuth.username }}</p>
         <p class="text-slate-700/80 text-md">User</p>
       </span>

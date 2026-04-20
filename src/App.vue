@@ -1,6 +1,7 @@
 <script setup>
 import { computed, watch, onMounted } from "vue";
 import LoadingSpinner from "./components/LoadingSpinner.vue";
+import TokenExpiryAlert from "./components/TokenExpiryAlert.vue";
 import { Toast } from "primevue";
 import { useAuthStores } from "./stores/Auth";
 import { useToast } from "primevue";
@@ -31,6 +32,7 @@ watch(
   <div>
     <LoadingSpinner />
     <Toast />
+    <TokenExpiryAlert />
     <router-view />
   </div>
 </template>

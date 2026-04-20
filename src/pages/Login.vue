@@ -63,7 +63,7 @@ const handleLogin = async () => {
     }, 3000);
     isSubmit.value = true;
   } catch (error) {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 400) {
       errorMessage.value = "username atau Password Salah!";
       toast.add({
         severity: "error",
