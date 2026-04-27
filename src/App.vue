@@ -36,7 +36,7 @@ const logout = ()=>{
 
 // NEW: Calculate idle timeout dari expires_in backend
 // expires_in dalam detik → convert ke milliseconds
-const idleTimeout = 60 * 60 * 1000; // 1 minute
+const idleTimeout = 2 * 60 * 1000; // 1 minute
 
 // Use idle timeout
 useIdleTimeOut(idleTimeout, logout);

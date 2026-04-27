@@ -1,5 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { getTokenRemainingTime, isTokenExpiringSoon } from '../utils/tokenUtils';
+import { useAuthStores } from '../stores/Auth';
 import axios from 'axios';
 import api from './../services/Api'
 
@@ -15,6 +16,8 @@ export function useTokenExpiry() {
   let countdownInterval = null;           // Lazy: starts only when < 1 min
   let activityTimeout = null;
   let removeActivityListeners = null;     // Cleanup function
+  let autoRefreshDebounce = false;        // Prevent multiple auto-refresh attempts
+  let idleLogoutTimeout = null;           // Track idle timeout untuk auto-logout
 
   // Track token state untuk reactive updates
   const hasToken = ref(false);
@@ -22,6 +25,8 @@ export function useTokenExpiry() {
   // Track user activity - true jika ada activity dalam 30 detik terakhir
   const isUserActive = ref(false);
   const ACTIVITY_TIMEOUT = 30 * 1000; // 30 detik (was 10)
+  const CRITICAL_THRESHOLD = 30; // Token ≤ 30 detik = CRITICAL state
+  const WARNING_THRESHOLD = 60;  // 60 detik ≥ token > 30 detik = WARNING state
 
   // Format remaining time menjadi MM:SS
   const formattedTime = computed(() => {
@@ -30,14 +35,14 @@ export function useTokenExpiry() {
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   });
 
-  // Check apakah token akan expired dalam 1 menit (CRITICAL THRESHOLD)
+  // Check apakah token akan expired dalam 1 menit (WARNING zone)
   const isExpiringSoon = computed(() => {
-    return remainingSeconds.value < 30; // 1 menit
+    return remainingSeconds.value < WARNING_THRESHOLD; // < 60 detik
   });
 
-  // Alias untuk consistency
+  // Check apakah sudah masuk CRITICAL zone (< 30 detik)
   const isExpiryCritical = computed(() => {
-    return remainingSeconds.value < 30; // 1 menit
+    return remainingSeconds.value <= CRITICAL_THRESHOLD; // ≤ 30 detik
   });
 
   // Update remaining time
@@ -59,33 +64,49 @@ export function useTokenExpiry() {
   };
 
   /**
-   * START CRITICAL MONITORING - Only called when token < 1 min
-   * Lazy: Countdown + Activity tracking dimulai di sini
+   * START COUNTDOWN (WARNING state) - Called when 60 > token > 30 detik
+   * Lazy: Hanya countdown, activity tracking belum aktif
    */
-  const startCriticalMonitoring = () => {
+  const startCountdownMonitoring = () => {
     if (countdownInterval) return; // Already running
     
-    console.log('[useTokenExpiry] 🔴 Entering CRITICAL zone - Starting countdown & activity tracking');
+    console.log('[useTokenExpiry] 🟡 Entering WARNING zone - Starting countdown (no activity tracking yet)');
     
     // Start countdown interval
     countdownInterval = setInterval(() => {
       updateRemainingTime();
     }, 1000); // Update setiap 1 detik
+  };
+
+  /**
+   * START CRITICAL MONITORING - Only called when token ≤ 30 detik
+   * Lazy: Countdown + Activity tracking dimulai di sini
+   */
+  const startCriticalMonitoring = () => {
+    if (removeActivityListeners) return; // Already running activity tracking
     
-    // Start activity tracking (only in critical state)
+    console.log('[useTokenExpiry] 🔴 Entering CRITICAL zone - Starting activity tracking');
+    
+    // Start activity tracking (only when <= 30 seconds)
     removeActivityListeners = startActivityTracking();
   };
 
   /**
-   * STOP CRITICAL MONITORING - Called when token ≥ 1 min or logout
-   * Lazy: Clean up countdown + activity tracking
+   * STOP COUNTDOWN - Called when token >= 60 atau logout
    */
-  const stopCriticalMonitoring = () => {
+  const stopCountdownMonitoring = () => {
     if (countdownInterval) {
       clearInterval(countdownInterval);
       countdownInterval = null;
     }
-    
+    console.log('[useTokenExpiry] 🟢 Exiting WARNING zone - Stopped countdown');
+  };
+
+  /**
+   * STOP CRITICAL MONITORING - Called when token > 30 detik atau logout
+   * Lazy: Clean up activity tracking + idle logout timeout
+   */
+  const stopCriticalMonitoring = () => {
     if (removeActivityListeners) {
       removeActivityListeners();
       removeActivityListeners = null;
@@ -98,26 +119,91 @@ export function useTokenExpiry() {
       activityTimeout = null;
     }
     
-    console.log('[useTokenExpiry] 🟢 Exiting CRITICAL zone - Stopping countdown & activity tracking');
+    // Clear idle logout timeout
+    if (idleLogoutTimeout) {
+      clearTimeout(idleLogoutTimeout);
+      idleLogoutTimeout = null;
+    }
+    
+    // Reset debounce flag
+    autoRefreshDebounce = false;
+    
+    console.log('[useTokenExpiry] 🟢 Exiting CRITICAL zone - Stopped activity tracking');
   };
 
-  // Track user activity (only called during critical monitoring)
+  /**
+   * Trigger auto-logout saat idle di CRITICAL state
+   * Hanya dipanggil saat token ≤ 30 detik dan user IDLE
+   */
+  const scheduleIdleLogout = () => {
+    if (idleLogoutTimeout) {
+      clearTimeout(idleLogoutTimeout);
+    }
+    
+    // Set timeout untuk auto-logout setelah ACTIVITY_TIMEOUT (30 detik idle)
+    idleLogoutTimeout = setTimeout(() => {
+      console.log('[useTokenExpiry] ⏰ Auto-logout triggered - User idle untuk 30 detik di critical zone');
+      autoLogout();
+    }, ACTIVITY_TIMEOUT);
+  };
+
+  /**
+   * Auto logout dan redirect ke login page
+   */
+  const autoLogout = () => {
+    try {
+      const useAuth = useAuthStores();
+      useAuth.logout();
+      console.log('[useTokenExpiry] ✅ Auto-logout completed');
+      
+      // Redirect ke login page
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('[useTokenExpiry] ❌ Auto-logout error:', error);
+      // Fallback: clear localStorage dan redirect
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+  };
+
+  // Track user activity (only called during critical monitoring - token <= 30 detik)
   const startActivityTracking = () => {
     const events = ["mousemove", "mousedown", "keypress", "scroll", "touchstart"];
     
     const handleActivity = () => {
       isUserActive.value = true;
-      console.log('[useTokenExpiry] User ACTIVE detected');
+      console.log('[useTokenExpiry] 👤 User ACTIVE detected (activity at critical zone)');
       
-      // Clear existing timeout
+      // Clear existing timeouts
       if (activityTimeout) {
         clearTimeout(activityTimeout);
       }
+      if (idleLogoutTimeout) {
+        clearTimeout(idleLogoutTimeout);
+        idleLogoutTimeout = null;
+      }
       
-      // Set timeout untuk mark user as inactive setelah ACTIVITY_TIMEOUT
+      // TRIGGER AUTO-REFRESH TOKEN
+      if (!autoRefreshDebounce) {
+        autoRefreshDebounce = true;
+        console.log('[useTokenExpiry] 🔄 Detected activity - Triggering auto-refresh');
+        autoRefreshToken().finally(() => {
+          // Reset debounce setelah 2 detik untuk prevent spam
+          setTimeout(() => {
+            autoRefreshDebounce = false;
+          }, 2000);
+        });
+      }
+      
+      // Set timeout untuk mark user as inactive setelah ACTIVITY_TIMEOUT (30 detik)
       activityTimeout = setTimeout(() => {
         isUserActive.value = false;
-        console.log('[useTokenExpiry] User marked as IDLE (30 sec no activity)');
+        console.log('[useTokenExpiry] 💤 User marked as IDLE (30 sec no activity)');
+        
+        // Jika masih di critical zone, schedule idle logout
+        if (remainingSeconds.value <= CRITICAL_THRESHOLD) {
+          scheduleIdleLogout();
+        }
       }, ACTIVITY_TIMEOUT);
     };
     
@@ -125,7 +211,10 @@ export function useTokenExpiry() {
       window.addEventListener(event, handleActivity);
     });
     
-    console.log('[useTokenExpiry] Activity tracking started');
+    console.log('[useTokenExpiry] Activity tracking started (critical zone)');
+    
+    // Initial: schedule logout setelah 30 detik jika tidak ada activity
+    scheduleIdleLogout();
     
     // Return cleanup function
     return () => {
@@ -135,6 +224,10 @@ export function useTokenExpiry() {
       if (activityTimeout) {
         clearTimeout(activityTimeout);
         activityTimeout = null;
+      }
+      if (idleLogoutTimeout) {
+        clearTimeout(idleLogoutTimeout);
+        idleLogoutTimeout = null;
       }
       console.log('[useTokenExpiry] Activity tracking stopped');
     };
@@ -199,10 +292,14 @@ export function useTokenExpiry() {
     // Initial check
     updateRemainingTime();
     
-    // Check jika token sudah < 60 saat mount
-    if (remainingSeconds.value < 60 && remainingSeconds.value > 0) {
-      console.log('[useTokenExpiry] Token sudah < 60 saat mount, starting critical monitoring');
+    // Check initial state saat mount
+    if (remainingSeconds.value <= CRITICAL_THRESHOLD && remainingSeconds.value > 0) {
+      console.log('[useTokenExpiry] Token sudah <= 30 detik saat mount, starting CRITICAL monitoring');
+      startCountdownMonitoring();
       startCriticalMonitoring();
+    } else if (remainingSeconds.value < WARNING_THRESHOLD && remainingSeconds.value > CRITICAL_THRESHOLD) {
+      console.log('[useTokenExpiry] Token sudah di WARNING zone saat mount, starting countdown');
+      startCountdownMonitoring();
     }
     
     // Non-critical monitoring: Update remainingSeconds every 10 seconds
@@ -212,16 +309,34 @@ export function useTokenExpiry() {
     }, 10 * 1000); // Update setiap 10 detik saat token masih aman
     
     // Watch untuk changes di remainingSeconds
-    // Trigger critical monitoring saat < 1 min
+    // Separate logic untuk WARNING (60-30 detik) dan CRITICAL (≤ 30 detik)
     const unwatchRemaining = watch(remainingSeconds, (newVal) => {
       console.log('[useTokenExpiry] remainingSeconds changed:', newVal);
-      if (newVal < 60 && newVal > 0) {
-        // Entering critical zone
-        console.log('[useTokenExpiry] Entering critical via watch');
+      
+      // CRITICAL ZONE: token <= 30 detik
+      if (newVal <= CRITICAL_THRESHOLD && newVal > 0) {
+        console.log('[useTokenExpiry] Entering CRITICAL zone (≤ 30 sec) via watch');
+        // Ensure countdown is running
+        if (!countdownInterval) {
+          startCountdownMonitoring();
+        }
+        // Start activity tracking
         startCriticalMonitoring();
-      } else if (newVal >= 60) {
-        // Exiting critical zone
-        console.log('[useTokenExpiry] Exiting critical via watch');
+      }
+      // WARNING ZONE: 60 > token > 30 detik (countdown only, no activity tracking)
+      else if (newVal < WARNING_THRESHOLD && newVal > CRITICAL_THRESHOLD) {
+        console.log('[useTokenExpiry] Entering WARNING zone (30-60 sec) via watch');
+        // Start countdown monitoring
+        if (!countdownInterval) {
+          startCountdownMonitoring();
+        }
+        // Stop critical monitoring if any
+        stopCriticalMonitoring();
+      }
+      // NORMAL ZONE: token >= 60 detik
+      else if (newVal >= WARNING_THRESHOLD) {
+        console.log('[useTokenExpiry] Exiting WARNING zone (≥ 60 sec) via watch');
+        stopCountdownMonitoring();
         stopCriticalMonitoring();
       }
     });
