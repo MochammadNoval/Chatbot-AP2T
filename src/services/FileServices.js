@@ -242,3 +242,80 @@ export function downloadFile(id, onProgress) {
     isCanceled: () => downloadCanceled
   };
 }
+
+export async function uploadExcelFile(file, onProgress = null, cancelToken = null) {
+  try {
+    // Validasi file
+    if (!file) {
+      throw new Error("File tidak ditemukan");
+    }
+
+    // Validasi tipe file (hanya excel)
+    const allowedTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.ms-excel', // .xls
+      'application/ms-excel',
+      'application/x-msexcel',
+      'application/x-ms-excel',
+      'application/x-excel',
+      'application/x-dos_ms_excel',
+      'text/csv', // .csv
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error("Format file tidak didukung. Gunakan file Excel (.xlsx, .xls) atau CSV");
+    }
+
+    // Validasi ukuran file (maksimal 50 MB)
+    const maxSize = 50 * 1024 * 1024;
+    if (file.size > maxSize) {
+      throw new Error("Ukuran file terlalu besar. Maksimal 50 MB");
+    }
+
+    // Buat FormData
+    const formData = new FormData();
+    formData.append("file", file);
+
+    // Lakukan POST request
+    const response = await api.post("/excel-import/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      onUploadProgress: (e) => {
+        if (e.total && onProgress) {
+          const percent = Math.round((e.loaded * 100) / e.total);
+          onProgress({
+            percent,
+            loaded: e.loaded,
+            total: e.total,
+          });
+        }
+      },
+      cancelToken: cancelToken,
+    });
+
+    return response.data;
+  } catch (error) {
+    // Check if upload was cancelled
+    if (axios.isCancel(error)) {
+      throw new Error("Upload dibatalkan");
+    }
+
+    console.error(error);
+    let fileMessage = "Upload file Excel gagal, silahkan coba lagi";
+
+    if (error.response) {
+      // Ambil pesan asli dari backend
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else if (error.message) {
+      // Error dari validasi lokal
+      fileMessage = error.message;
+    } else {
+      fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
+    }
+
+    throw new Error(fileMessage);
+  }
+}

@@ -11,7 +11,8 @@ export const useAuthStores = defineStore("auth", {
     sessionExpired: false,
     access_token: null,
     refresh_token: null,
-    token_expiry_time: null
+    token_expiry_time: null,
+    expires_in: null  // Token duration dalam detik dari backend
   }),
   
   getters: {
@@ -31,6 +32,11 @@ export const useAuthStores = defineStore("auth", {
       // Simpan tokens
       this.access_token = tokens.access_token || localStorage.getItem("access_token");
       this.refresh_token = tokens.refresh_token || null;
+      
+      // NEW: Simpan expires_in (duration dalam detik)
+      if (tokens.expires_in) {
+        this.expires_in = tokens.expires_in;
+      }
       
       // Set token expiry time (expires_in dalam detik)
       if (tokens.expires_in) {
@@ -60,6 +66,7 @@ export const useAuthStores = defineStore("auth", {
       this.access_token = null;
       this.refresh_token = null;
       this.token_expiry_time = null;
+      this.expires_in = null;  // NEW: Clear expires_in
       
       localStorage.removeItem("username");
       localStorage.removeItem("loggedIn");

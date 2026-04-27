@@ -140,7 +140,7 @@ export function getTokenRemainingTime(expiryTime) {
   
   // Final validation
   if (!expiryTime || isNaN(expiryTime)) return 0;
-  
+
   const remaining = expiryTime - Date.now();
   return Math.max(0, Math.ceil(remaining / 1000));
 }

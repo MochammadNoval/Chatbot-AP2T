@@ -3,7 +3,7 @@ import { onMounted, ref, VueElement } from "vue";
 import logoIconPlus from "./../image/logo-pln-plus.svg";
 import logoPLN from "./../image/pln.svg";
 import { useRoute } from "vue-router";
-import { FolderIcon } from "@heroicons/vue/24/outline";
+import { BriefcaseIcon, FolderIcon } from "@heroicons/vue/24/outline";
 import { useAuthStores } from "../stores/Auth";
 import { useRouter } from "vue-router";
 import Swal from "sweetalert2";
@@ -259,6 +259,36 @@ const handleExpand = () => {
               }"
             >
               User
+            </p>
+          </div>
+        </router-link>
+
+        <router-link
+          to="/dashboard-sertifikasi"
+          class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
+          :class="
+            isActive('/dashboard-sertifikasi')
+              ? 'bg-blue-500 text-white'
+              : 'text-slate-700/80'
+          "
+        >
+          <div
+            class="flex items-center gap-2 transition-all duration-500 ease-in-out"
+            :class="{
+              'translate-x-[30%]': isActive('/dashboard-sertifikasi') && isExpand,
+              'translate-x-0': isActive('/dashboard-sertifikasi') && !isExpand,
+            }"
+          >
+            <briefcase-icon class="size-6 group-hover:text-white" />
+
+            <p
+              class="font-semibold group-hover:text-white transition-all duration-500 ease-in-out"
+              :class="{
+                'opacity-100 w-auto': isExpand,
+                'opacity-0 w-0 overflow-hidden': !isExpand,
+              }"
+            >
+             Dashboard Sertifikasi
             </p>
           </div>
         </router-link>

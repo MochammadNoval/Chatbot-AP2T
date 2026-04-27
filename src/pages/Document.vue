@@ -56,7 +56,7 @@ let allDocuments = ref([]); // Menyimpan semua dokumen original
 let tags = ref([]);
 let searchQuery = ref(""); // Menyimpan search query
 let currentPage = ref(1); // Halaman saat ini
-const itemsPerPage = 3; // Items per halaman
+const itemsPerPage = 5; // Items per halaman
 
 // Download state management
 const isDownloading = ref(false);

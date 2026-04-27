@@ -10,6 +10,8 @@ import User from "../pages/User.vue";
 import Profile from "../pages/Profile.vue";
 import NotFound from "../pages/NotFound.vue";
 import Maintenance from "../pages/UnderMaintenance.vue"
+import DashboardSertifikasi from "../pages/DashboardSertifikasi.vue"
+
 
 import { useAuthStores } from "../stores/Auth";
 
@@ -60,6 +62,11 @@ const routes = [
         name: "profile",
         component: Profile,
       },
+      {
+        path: "/dashboard-sertifikasi",
+        name: "dashboard-sertifikasi",
+        component: DashboardSertifikasi,
+      },
     ],
   },
   {
@@ -74,6 +81,7 @@ const routes = [
     component: Maintenance,
     meta: { requiresAuth: true },
   },
+
   {
     path: "/profile",
     name: "profile",

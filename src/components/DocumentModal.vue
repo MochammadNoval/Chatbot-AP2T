@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { PlusCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
 import { ProgressSpinner, Toast, useToast } from "primevue";
 import {
@@ -35,6 +35,33 @@ const groupTag = ref([])
 const tag = ref([]);
 const selectedTag = ref([]);
 const selectedGroupTag = ref([]);
+
+// Computed property untuk filter tags berdasarkan selectedGroupTag
+const filteredTags = computed(() => {
+  if (selectedGroupTag.value.length === 0) {
+    return [];
+  }
+  
+  return tag.value.filter((t) =>
+    selectedGroupTag.value.includes(t.tag_group_id)
+  );
+});
+
+// Watch untuk membersihkan selectedTag ketika selectedGroupTag berubah
+watch(selectedGroupTag, () => {
+
+  if (selectedGroupTag.value.length === 0) {
+    // Jika tidak ada group tags yang dipilih, clear selectedTag
+    selectedTag.value = [];
+  } else {
+    console.log("group tag dipilih", selectedGroupTag.value)
+    // Jika ada group tags yang dipilih, hapus selectedTag yang tidak sesuai
+    selectedTag.value = selectedTag.value.filter((tagId) => {
+      const tagObj = tag.value.find((t) => t.id === tagId);
+      return tagObj && selectedGroupTag.value.includes(tagObj.tag_group_id);
+    });
+  }
+}, {immediate : true});
 
 const nameFileForPlaceholder = ref("");
 const fileById = ref("");
@@ -73,6 +100,7 @@ const clearAllTags = () => {
 
 const clearAllGroupTags = () => {
   selectedGroupTag.value = [];
+  selectedTag.value = [];
   listTagInFile.value = [];
 };
 
@@ -115,7 +143,7 @@ onMounted(async () => {
   try {
     tag.value = await getTags();
     groupTag.value = await getTagGroups()
-    console.log(groupTag.value, tag.value)
+
   } catch (error) {
     toast.add({
       severity: "error",
@@ -294,6 +322,7 @@ const uploadToServer = async () => {
   } catch (err) {
     // Don't show toast if upload was cancelled (already shown in handleCancelUpload)
     if (err.message !== "Upload dibatalkan") {
+      console.log(err.message)
       toast.add({
         severity: "error",
         summary: "Error",
@@ -301,9 +330,10 @@ const uploadToServer = async () => {
         life: 3000,
       });
     }
+  } finally{
     isLoading.value = false;
     uploadCancelSource.value = null;
-  } 
+  }
 };
 
 // Format bytes to readable format (KB, MB, GB)
@@ -369,7 +399,7 @@ const handleCancelUpload = () => {
     toast.add({
       severity: "info",
       summary: "Info",
-      detail: "Upload dibatalkan",
+      detail: "Upload dibatalkan cui",
       life: 3000,
     });
   }
@@ -416,7 +446,7 @@ const closeModal = () => {
 
   <!-- Modal -->
   <div
-    v-if="props.isOpen"
+    v-if="props.isOpen "
     class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-auto max-h-[90vh]"
   >
     <Toast />
@@ -498,9 +528,12 @@ const closeModal = () => {
       </div>
 
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">
-          Nama File
-        </label>
+        <span class="flex gap-x-2 ">  
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Nama File
+          </label>
+          <p class="text-xs font-semibold text-gray-500 mt-0.5">(opsional)</p>
+        </span>
         <input
           v-model="formData.filename"
           type="text"
@@ -515,7 +548,7 @@ const closeModal = () => {
       <!-- Group Tags -->
       <div>
         <!-- Selected group tags display -->
-        <div v-if="selectedGroupTag.length > 0" class="mb-3 border border-green-400">
+        <div v-if="selectedGroupTag.length > 0" class="mb-3 ">
           <div class="flex flex-wrap gap-2">
             <div
               v-for="selected in selectedGroupTag"
@@ -568,7 +601,7 @@ const closeModal = () => {
         />
 
         <!-- section Tag -->
-        <div class="flex flex-wrap gap-2 mt-4 ">
+        <div v-if="selectedTag.length > 0" class="flex flex-wrap gap-2 mt-4 ">
             <div
               v-for="selected in selectedTag"
               :key="selected"
@@ -595,7 +628,15 @@ const closeModal = () => {
                   />
                 </svg>
               </button>
+              
             </div>
+             <button
+              @click="clearAllTags"
+              class="ml-auto text-xs cursor-pointer text-red-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
           </div>
 
         <!-- Select Tags berdasarkan GroupTags yang dipilih -->
@@ -604,7 +645,7 @@ const closeModal = () => {
         </label>
         <CustomMultiSelect
           v-model="selectedTag"
-          :options="tag"
+          :options="filteredTags"
           optionLabel="name"
           optionValue="id"
           placeholder="Pilih tags untuk file ini..."
@@ -645,7 +686,7 @@ const closeModal = () => {
             <div
               v-for="listTag in listTagInFile"
               :key="listTag"
-              class="px-3 py-1.5 bg-green-100 border border-green-300 text-green-800 rounded-full text-sm font-medium flex items-center gap-2"
+              class="px-3 py-1.5 bg-green-100  text-green-800 rounded-full text-sm font-medium flex items-center gap-2"
             >
               {{ tag.find((t) => t.id === listTag)?.name || listTag.name }}
               <button
@@ -701,6 +742,92 @@ const closeModal = () => {
         />
       </div>
     </div>
+
+
+    <!-- Modal untuk sertifikasi -->
+    <div class="p-6 space-y-4" v-if="props.type === 'ModalSertifikasi' && uploadProgress === 0">
+      <!-- File Input -->
+      <div>
+        <label
+          class="block text-sm font-semibold text-gray-700 mb-2"
+          for="uploadFile"
+        >
+          Pilih File
+        </label>
+        <div
+          class="border-dashed border rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition-colors"
+          :class="{
+            'border-blue-500': isDragging,
+            'border-red-500': !isDragging,
+          }"
+          @dragover.prevent="onDragOver"
+          @dragleave.prevent="onDragLeave"
+          @drop.prevent="onDrop"
+          @click.stop="fileInput.click()"
+        >
+          <input
+            ref="fileInput"
+            type="file"
+            @change="handleFileChange"
+            class="hidden"
+            aria-label="Upload file"
+            id="uploadFile"
+          />
+          <div class="pointer-events-none">
+            <p class="text-gray-600 text-sm font-semibold">
+              {{
+                formData.file
+                  ? formData.file.name
+                  : "Drag atau click upilih file"
+              }}
+            </p>
+            
+            <p class="text-gray-400 text-xs mt-1">
+  {{
+    formData.file
+      ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB`
+      : props.type === "UploadDocument"
+        ? "Max size 100MB & format PDF"
+        : "Max size 100MB & format Excel"
+  }}
+</p>
+
+          </div>
+          
+          <!-- Close button untuk membatalkan file -->
+          <button
+            v-if="formData.file"
+            @click.stop="clearFile"
+            class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+            type="button"
+            title="Batalkan file"
+          >
+            <XCircleIcon class="size-4" />
+            Batalkan File
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <span class="flex gap-x-2 ">  
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Nama File
+          </label>
+          <p class="text-xs font-semibold text-gray-500 mt-0.5">(opsional)</p>
+        </span>
+        <input
+          v-model="formData.filename"
+          type="text"
+          placeholder="Masukkan nama file (tanpa extension)"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          Format: Excel akan ditambahkan otomatis
+        </p>
+      </div>
+
+    </div>
+
 
     <!-- Modal Footer -->
     <div class="flex flex-col gap-3 p-6 border-t border-gray-200">

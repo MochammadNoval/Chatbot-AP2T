@@ -12,6 +12,8 @@ import LoadingSpinner from "./../components/LoadingSpinner.vue";
 import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
 import { usePreviewModal } from "../composables/usePreviewModal";
 import api from "../services/Api";
+import { ArrowPathIcon } from "@heroicons/vue/24/outline";
+import { useAuthStores } from "../stores/Auth";
 
 const isExpand = ref(true);
 const messages = ref([]);
@@ -36,6 +38,7 @@ const {
   closeModal: closePreviewModal,
 } = usePreviewModal();
 
+const useAuth = useAuthStores()
 // Computed property untuk filter chat sessions berdasarkan search query
 const filteredChatSessions = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -50,8 +53,25 @@ const filteredChatSessions = computed(() => {
 });
 
 onMounted(async () => {
-  await fetchChatSessions();
+  await initialize();
 });
+
+const initialize = async () => {
+  try {
+    useAuth.setLoading(true)
+    await fetchChatSessions();
+      setTimeout(() => {
+    useAuth.setLoading(false)
+  }, 500);
+  } catch (error) {
+    await Swal.fire({
+      title: "Error!",
+      text: error.message || "Gagal memuat data chat session",
+      icon: "error",
+      confirmButtonColor: "#ef4444",
+    });
+  }
+}
 
 const handleNewChat = () => {
   messages.value = [];
@@ -322,6 +342,9 @@ const handlePreviewDocument = async (source) => {
     console.error("Preview error:", error);
   }
 };
+const hanldeRefreshChat = async () => {
+  await initialize();
+}
 </script>
 
 <template>
@@ -334,15 +357,15 @@ const handlePreviewDocument = async (source) => {
   >
     <!-- container chat -->
     <section
-      class="py-4 px-2 bg-mainblue/50 transition-all duration-300 ease-in-out h-screen flex flex-col overflow-hidden border-r border-slate-200"
+      class="py-4 px-2 bg-mainblue/50 transition-all duration-300 ease-in-out h-screen flex flex-col  overflow-hidden border-r border-slate-200"
       :style="{
         width: isExpand ? '250px' : '0px',
         opacity: isExpand ? 1 : 0,
       }"
     >
-      <div class="border-b border-gray-400/20 w-full px-3">
+      <div class="border-b border-gray-400/20 w-full flex gap-x-4 items-center justify-center pt-2 pb-4">
         <button
-          class="bg-blue-500 p-2 flex rounded-lg text-sm w-full mb-4 hover:cursor-pointer"
+          class="bg-blue-500 p-2 flex rounded-lg text-sm w-full hover:cursor-pointer items-center justify-center"
           @click="handleNewChat"
         >
           <svg
@@ -362,6 +385,7 @@ const handlePreviewDocument = async (source) => {
 
           <p class="font-semibold ms-2">Chat Baru</p>
         </button>
+        <ArrowPathIcon class="w-5 text-blue-500 cursor-pointer shrink-0" @click="hanldeRefreshChat"></ArrowPathIcon>
       </div>
 
       <form action="" method="POST" class="w-full mt-2 mb-4" @submit.prevent>

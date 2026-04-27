@@ -19,13 +19,20 @@ export async function Login(user) {
     const response = await api.post("/auth/login", user);
     const { access_token, refresh_token, expires_in } = response.data;
 
+
     if (!access_token) {
       throw new Error("Login gagal: Backend tidak return access_token");
     }
 
     // Calculate expiry time: gunakan expires_in dari backend (dalam detik)
-    // Default 900 detik (15 menit) jika backend tidak provide
-    const expiryTime = Date.now() + ((expires_in || 900) * 1000);
+    // MUST receive expires_in from backend, no fallback
+    if (!expires_in) {
+      console.error('[Login] ❌ Backend tidak mengirim expires_in. Token tidak dapat diproses.', response.data);
+      throw new Error('Backend response tidak valid: expires_in tidak ada');
+    }
+    const expiryTime = Date.now() + (expires_in * 1000);
+
+    console.log(expiryTime);
 
     // Simpan tokens ke localStorage
     localStorage.setItem("access_token", access_token);
@@ -43,7 +50,7 @@ export async function Login(user) {
     useAuth.login(userData, {
       access_token,
       refresh_token,
-      expires_in: expires_in || 900
+      expires_in
     });
 
     return {
