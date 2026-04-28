@@ -1,6 +1,7 @@
 import axios from "axios";
 import api from "./Api";
 import { useAuthStores } from "../stores/Auth";
+import { calculateTokenExpiryTime } from "../utils/tokenUtils";
 
 /**
  * Login dengan email dan password
@@ -19,7 +20,6 @@ export async function Login(user) {
     const response = await api.post("/auth/login", user);
     const { access_token, refresh_token, expires_in } = response.data;
 
-
     if (!access_token) {
       throw new Error("Login gagal: Backend tidak return access_token");
     }
@@ -30,18 +30,30 @@ export async function Login(user) {
       console.error('[Login] ❌ Backend tidak mengirim expires_in. Token tidak dapat diproses.', response.data);
       throw new Error('Backend response tidak valid: expires_in tidak ada');
     }
-    const expiryTime = Date.now() + (expires_in * 1000);
+    
+    // Use utility function untuk calculate expiry time
+    const expiryTime = calculateTokenExpiryTime(expires_in);
+    if (!expiryTime) {
+      throw new Error('Failed to calculate token expiry time');
+    }
 
-    console.log(expiryTime);
+    console.log('[Login] 🔐 Token received:', {
+      expires_in,
+      expiryTime,
+      expiryDate: new Date(expiryTime).toLocaleString()
+    });
 
     // Simpan tokens ke localStorage
     localStorage.setItem("access_token", access_token);
     localStorage.setItem("token_expiry_time", expiryTime.toString());
+    localStorage.setItem("token_expires_in", expires_in.toString());  // Store original expires_in
     
     // Simpan refresh_token jika ada
     if (refresh_token) {
       localStorage.setItem("refresh_token", refresh_token);
     }
+    
+    console.log('[Login] ✅ Tokens saved to localStorage');
 
     // Ambil user data dari /auth/me
     const userData = await getCurrentUser();

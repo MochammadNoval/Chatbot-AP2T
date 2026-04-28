@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { isTokenExpired, isTokenExpiringSoon } from "../utils/tokenUtils";
+import { isTokenExpired, isTokenExpiringSoon, calculateTokenExpiryTime } from "../utils/tokenUtils";
 
 export const useAuthStores = defineStore("auth", {
   state: () => ({
@@ -33,14 +33,15 @@ export const useAuthStores = defineStore("auth", {
       this.access_token = tokens.access_token || localStorage.getItem("access_token");
       this.refresh_token = tokens.refresh_token || null;
       
-      // NEW: Simpan expires_in (duration dalam detik)
+      // Simpan expires_in (duration dalam detik)
       if (tokens.expires_in) {
         this.expires_in = tokens.expires_in;
+        console.log('[Auth Store] 📝 login: expires_in stored -', tokens.expires_in, 'seconds');
       }
       
-      // Set token expiry time (expires_in dalam detik)
+      // Set token expiry time using utility function
       if (tokens.expires_in) {
-        this.token_expiry_time = Date.now() + (tokens.expires_in * 1000);
+        this.token_expiry_time = calculateTokenExpiryTime(tokens.expires_in);
       }
       
       // Simpan ke localStorage
@@ -50,8 +51,16 @@ export const useAuthStores = defineStore("auth", {
       if (tokens.refresh_token) {
         localStorage.setItem("refresh_token", tokens.refresh_token);
       }
+      if (tokens.expires_in) {
+        localStorage.setItem("token_expires_in", tokens.expires_in.toString());
+      }
       if (this.token_expiry_time) {
         localStorage.setItem("token_expiry_time", this.token_expiry_time.toString());
+        console.log('[Auth Store] ✅ login: tokens saved to localStorage', {
+          expires_in: tokens.expires_in,
+          expiry_time: this.token_expiry_time,
+          expiry_date: new Date(this.token_expiry_time).toLocaleString()
+        });
       }
       
       localStorage.setItem("username", user.name);
@@ -66,14 +75,16 @@ export const useAuthStores = defineStore("auth", {
       this.access_token = null;
       this.refresh_token = null;
       this.token_expiry_time = null;
-      this.expires_in = null;  // NEW: Clear expires_in
+      this.expires_in = null;
       
+      console.log('[Auth Store] 🔓 logout: clearing all tokens');
       localStorage.removeItem("username");
       localStorage.removeItem("loggedIn");
       localStorage.removeItem("user_id");
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       localStorage.removeItem("token_expiry_time");
+      localStorage.removeItem("token_expires_in");  // Remove stored expires_in
     },
     handleUnauthorized(){
       if(this.sessionExpired) return;

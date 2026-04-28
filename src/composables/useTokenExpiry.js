@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { getTokenRemainingTime, isTokenExpiringSoon } from '../utils/tokenUtils';
+import { getTokenRemainingTime, isTokenExpiringSoon, calculateTokenExpiryTime, getStoredExpiresIn } from '../utils/tokenUtils';
 import { useAuthStores } from '../stores/Auth';
 import axios from 'axios';
 import api from './../services/Api'
@@ -253,20 +253,31 @@ export function useTokenExpiry() {
       if (response.status === 200 && response.data.access_token) {
         const { access_token, refresh_token: newRefreshToken, expires_in } = response.data;
         
-        // Calculate new expiry time - use backend value directly
+        // Calculate new expiry time using utility function
         if (!expires_in) {
           console.error('[useTokenExpiry] ❌ Backend tidak mengirim expires_in', response.data);
           throw new Error('Backend response tidak valid: expires_in tidak ada');
         }
-        const expiryTime = Date.now() + (expires_in * 1000);
+        const expiryTime = calculateTokenExpiryTime(expires_in);
+        
+        if (!expiryTime) {
+          throw new Error('Failed to calculate token expiry time');
+        }
         
         // Update localStorage
         localStorage.setItem("access_token", access_token);
         localStorage.setItem("token_expiry_time", expiryTime.toString());
+        localStorage.setItem("token_expires_in", expires_in.toString());  // Store original expires_in
         
         if (newRefreshToken) {
           localStorage.setItem("refresh_token", newRefreshToken);
         }
+        
+        console.log('[useTokenExpiry] ✅ Token auto-refreshed successfully', {
+          expires_in: expires_in,
+          new_expiry_time: expiryTime,
+          new_expiry_date: new Date(expiryTime).toLocaleString()
+        });
         
         // Trigger storage event for other tabs
         window.dispatchEvent(new StorageEvent('storage', {
@@ -275,7 +286,6 @@ export function useTokenExpiry() {
           storageArea: localStorage
         }));
         
-        console.log('[useTokenExpiry] ✅ Token auto-refreshed successfully');
         updateRemainingTime();
         return true;
       }
@@ -288,9 +298,20 @@ export function useTokenExpiry() {
   // Lifecycle
   onMounted(() => {
     const token = localStorage.getItem("access_token");
+    const storedExpiresIn = getStoredExpiresIn();
     
     // Initial check
     updateRemainingTime();
+    
+    // Log token expiry info
+    if (storedExpiresIn) {
+      console.log('[useTokenExpiry] 🎯 onMounted: Token info -', {
+        expires_in: storedExpiresIn,
+        remaining_seconds: remainingSeconds.value,
+        expiry_time: localStorage.getItem("token_expiry_time"),
+        expiry_date: new Date(parseInt(localStorage.getItem("token_expiry_time"))).toLocaleString()
+      });
+    }
     
     // Check initial state saat mount
     if (remainingSeconds.value <= CRITICAL_THRESHOLD && remainingSeconds.value > 0) {

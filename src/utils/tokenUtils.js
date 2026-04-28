@@ -144,3 +144,40 @@ export function getTokenRemainingTime(expiryTime) {
   const remaining = expiryTime - Date.now();
   return Math.max(0, Math.ceil(remaining / 1000));
 }
+
+/**
+ * Calculate token expiry time dari expires_in (seconds dari API)
+ * @param {number} expiresInSeconds - Token duration dalam detik dari API
+ * @returns {number|null} Expiry time dalam milliseconds atau null jika invalid
+ */
+export function calculateTokenExpiryTime(expiresInSeconds) {
+  // Validation
+  if (!expiresInSeconds || typeof expiresInSeconds !== 'number' || expiresInSeconds <= 0) {
+    console.warn('[tokenUtils] ⚠️ calculateTokenExpiryTime: Invalid expiresInSeconds -', expiresInSeconds);
+    return null;
+  }
+  
+  const expiryTime = Date.now() + (expiresInSeconds * 1000);
+  console.log(`[tokenUtils] ✅ calculateTokenExpiryTime: expires_in=${expiresInSeconds}s, expiry_time=${expiryTime} (${new Date(expiryTime).toLocaleString()})`);
+  
+  return expiryTime;
+}
+
+/**
+ * Get stored expires_in value dari localStorage
+ * @returns {number|null} Original expires_in value dalam detik atau null
+ */
+export function getStoredExpiresIn() {
+  const expiresIn = localStorage.getItem('token_expires_in');
+  if (!expiresIn) {
+    return null;
+  }
+  
+  const value = parseInt(expiresIn, 10);
+  if (isNaN(value) || value <= 0) {
+    return null;
+  }
+  
+  console.log(`[tokenUtils] 📋 getStoredExpiresIn: retrieved ${value}s from localStorage`);
+  return value;
+}
