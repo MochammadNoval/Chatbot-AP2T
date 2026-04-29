@@ -4,7 +4,6 @@ import LoadingSpinner from "./components/LoadingSpinner.vue";
 import { Toast } from "primevue";
 import { useAuthStores } from "./stores/Auth";
 import { useToast } from "primevue";
-import { useIdleTimeOut } from "./composables/useIdleTimeout";
 import { useRouter } from "vue-router";
 
 const auth = useAuthStores();
@@ -34,12 +33,12 @@ const logout = ()=>{
   router.push("/login");
 };
 
-// NEW: Calculate idle timeout dari expires_in backend
-// expires_in dalam detik → convert ke milliseconds
-const idleTimeout = 2 * 60 * 1000; // 1 minute
-
-// Use idle timeout
-useIdleTimeOut(idleTimeout, logout);
+// NOTE: Token expiry & idle timeout dihandle oleh useTokenExpiry composable
+// di composables/useTokenExpiry.js. Include:
+// - Activity tracking saat token <= 30 detik
+// - Auto-refresh saat user active di critical zone
+// - Auto-logout saat idle 30 detik di critical zone
+// Jangan add idle timeout di sini untuk avoid duplicate/conflicting logic!
 
 </script>
 
