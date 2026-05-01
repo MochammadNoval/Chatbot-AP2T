@@ -83,6 +83,15 @@ export async function getCurrentUser() {
   }
 }
 
+export async function getDataDashboard() {
+  try {
+    const response = await api.get("dashboard/stats")
+    return response.data;
+  } 
+  catch(error){
+    throw error;
+  }
+}
 /**
  * Refresh access token menggunakan refresh token
  * Mengembalikan: { access_token, refresh_token, expires_in }

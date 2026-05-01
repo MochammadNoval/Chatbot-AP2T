@@ -1,6 +1,8 @@
 <script setup>
+import { onMounted, ref, reactive } from "vue";
 import CardDashboard from "../components/CardDashboard.vue";
 import CardIndeks from "../components/CardIndeks.vue";
+import LoadingSpinner from "../components/LoadingSpinner.vue";
 import {
   DocumentTextIcon,
   UserGroupIcon,
@@ -9,18 +11,74 @@ import {
 } from "@heroicons/vue/16/solid";
 
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
+import { getDataDashboard } from "../services/AuthServices";
+import { useToast } from "primevue/usetoast";
+import { useAuthStores } from "../stores/Auth";
+
+// State management
+const useAuth = useAuthStores();
+const error = ref(null);
+const toast = useToast();
+
+const dashboard = reactive({
+  documents: {
+    total: 0,
+    indexed_faiss: 0,
+    not_indexed: 0
+  },
+  users: {
+    total_users: 0
+  },
+  chat: {
+    total_chat: 0
+  },
+  ai: {
+    response_time_ms: 0,
+    good_responses: 0,
+    failed_responses: 0,
+    used_token: 0,
+    average_token_per_chat: 0
+  }
+});
+
+onMounted(async () => {
+  try {
+    useAuth.setLoading(true);
+    error.value = null;
+    const data = await getDataDashboard();
+    // Assign data dengan Object.assign untuk lebih clean
+    Object.assign(dashboard, data);
+  } catch (err) {
+    error.value = err.message || "Gagal memuat data dashboard";
+    console.error(err);
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.value,
+      life: 3000,
+    });
+  } finally {
+    useAuth.setLoading(false);
+  }
+});
+
 </script>
 
 <template>
+  <LoadingSpinner />
   <div>
-    <!-- <Sidebar
-      @toggle="isExpand = !isExpand"
-      :class="[
-        'transition-all duration-300 ease-in-out',
-        isExpand ? 'w-[250px]' : 'w-[90px]',
-      ]"
-    /> -->
-    <div class="p-4">
+    <!-- Loading State - Handled by LoadingSpinner component reading from authStore -->
+
+    <!-- Error State -->
+    <div v-if="error" class="p-4">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h2 class="text-red-800 font-semibold mb-2">Terjadi Kesalahan</h2>
+        <p class="text-red-700 text-sm">{{ error }}</p>
+      </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div v-else class="p-4">
       <header>
         <h1 class="font-bold text-black text-xl">Dashboard</h1>
         <p class="text-slate-500/90 font-normal">
@@ -31,26 +89,26 @@ import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
       <div class="mt-4 grid grid-cols-4 gap-x-4">
         <CardDashboard
           title="Total Dokumen"
-          value="5"
-          desc="5 aktif, 0 dihapus"
+          :value="dashboard.documents.total"
+          :desc="`${dashboard.documents.indexed_faiss} aktif, ${dashboard.documents.not_indexed} dihapus`"
           :icon="DocumentTextIcon"
         />
         <CardDashboard
           title="Total Pengguna"
-          value="2"
+          :value="dashboard.users.total_users"
           desc="Pengguna Terdaftar"
           :icon="UserGroupIcon"
         />
         <CardDashboard
           title="Total Chat"
-          value="7"
+          :value="dashboard.chat.total_chat"
           desc="Sesi Percakapan"
           :icon="ChatBubbleBottomCenterIcon"
         />
         <CardDashboard
           title="Respon AI"
-          value="1643ms"
-          desc="4 Berhasil, 0 gagal"
+          :value="`${dashboard.ai.response_time_ms} ms`"
+          :desc="`${dashboard.ai.good_responses} Berhasil, ${dashboard.ai.failed_responses} gagal`"
           :icon="BoltIcon"
         />
       </div>
@@ -62,14 +120,14 @@ import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
             </h1>
             <CardIndeks
               category="active"
-              value="5"
               title="Dokumen Aktif"
+              :value="dashboard.documents.indexed_faiss"
               desc="Tersedia untuk diakses"
               :icon="CheckCircleIcon"
             />
             <CardIndeks
               category="hapus"
-              value="0"
+              :value="dashboard.documents.not_indexed"
               title="Dokumen Dihapus"
               desc="Dapat dipulihkan"
               :icon="XCircleIcon"
@@ -82,22 +140,22 @@ import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
             <h1 class="text-xl text-black font-semibold mb-2">Statistik AI</h1>
             <CardIndeks
               category="active"
-              value="4"
+              :value="dashboard.ai.good_responses"
               title="Respon berhasil"
               desc="AI merespon dengan baik"
               :icon="CheckCircleIcon"
             />
             <CardIndeks
               category="hapus"
-              value="0"
+              :value="dashboard.ai.failed_responses"
               title="Respon Gagal"
               desc="Perlu perhatian"
               :icon="XCircleIcon"
             />
             <CardIndeks
               category="rata"
-              value="1643ms"
-              title="Rata Rata Waktu Respom"
+              :value="`${dashboard.ai.response_time_ms} ms`"
+              title="Rata Rata Waktu Respon"
               desc="Kecepatan waktu merespon"
               :icon="BoltIcon"
             />
@@ -108,4 +166,4 @@ import { CheckCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
   </div>
 </template>
 
-<style></style>
+<style scoped></style>

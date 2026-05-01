@@ -19,7 +19,7 @@ import {
   FolderIcon,
 } from "@heroicons/vue/24/outline";
 
-import { onMounted, ref, computed } from "vue";
+import { onMounted, ref, computed, watch } from "vue";
 import {
   deleteFile,
   getFiles,
@@ -56,7 +56,8 @@ let allDocuments = ref([]); // Menyimpan semua dokumen original
 let tags = ref([]);
 let searchQuery = ref(""); // Menyimpan search query
 let currentPage = ref(1); // Halaman saat ini
-const itemsPerPage = 5; // Items per halaman
+const itemsPerPageOptions = [5, 10, 20, 50, 100]; // Opsi jumlah items per halaman
+let itemsPerPage = ref(5); // Items per halaman
 
 // Download state management
 const isDownloading = ref(false);
@@ -69,8 +70,8 @@ let abortController = null;
 
 // Computed untuk paginated documents
 const paginatedDocuments = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
   return documents.value.slice(start, end);
 });
 
@@ -352,6 +353,13 @@ const handlePageChange = (page) => {
     .querySelector(".mt-4")
     ?.scrollIntoView({ behavior: "smooth", block: "start" });
 };
+
+/**
+ * Watcher untuk reset halaman ke 1 saat itemsPerPage berubah
+ */
+watch(itemsPerPage, () => {
+  currentPage.value = 1; // Reset ke halaman pertama
+});
 </script>
 
 <template>
@@ -424,7 +432,7 @@ const handlePageChange = (page) => {
       placeholder="Cari file..."
       @search="performSearch"
     />
-    <section class="flex items-center gap-4">
+    <section class="flex items-center gap-4 mt-6">
       <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
       <p class="font-semibold text-black">Filter :</p>
       <div class="flex-1 max-w-md ">
@@ -436,6 +444,20 @@ const handlePageChange = (page) => {
           @tag-selected="handleTagSelected"
           @tag-removed="handleTagRemoved"
         />
+      </div>
+      
+      <!-- Dropdown Rows Per Page -->
+      <div class="flex items-center gap-2 ms-auto">
+        <label for="itemsPerPage" class="font-semibold text-black text-sm">Tampilkan:</label>
+        <select
+          id="itemsPerPage"
+          v-model.number="itemsPerPage"
+          class="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+        >
+          <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
+            {{ option }} per halaman
+          </option>
+        </select>
       </div>
     </section>
 
@@ -537,7 +559,7 @@ const handlePageChange = (page) => {
         v-if="documents.length > 0"
         :currentPage="currentPage"
         :totalItems="documents.length"
-        :itemsPerPage="itemsPerPage"
+        :itemsPerPage="itemsPerPage.value"
         :maxVisiblePages="5"
         @page-change="handlePageChange"
       />
