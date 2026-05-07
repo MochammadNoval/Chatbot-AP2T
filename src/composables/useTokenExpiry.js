@@ -60,7 +60,7 @@ export function useTokenExpiry() {
     
     const remaining = getTokenRemainingTime(expiryTime);
     remainingSeconds.value = Math.max(0, remaining);
-    console.log(`[useTokenExpiry] updateRemainingTime: ${remaining} seconds (${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')})`);
+    // console.log(`[useTokenExpiry] updateRemainingTime: ${remaining} seconds (${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')})`);
   };
 
   /**
@@ -70,7 +70,7 @@ export function useTokenExpiry() {
   const startCountdownMonitoring = () => {
     if (countdownInterval) return; // Already running
     
-    console.log('[useTokenExpiry] 🟡 Entering WARNING zone - Starting countdown (no activity tracking yet)');
+    // console.log('[useTokenExpiry] 🟡 Entering WARNING zone - Starting countdown (no activity tracking yet)');
     
     // Start countdown interval
     countdownInterval = setInterval(() => {
@@ -85,7 +85,7 @@ export function useTokenExpiry() {
   const startCriticalMonitoring = () => {
     if (removeActivityListeners) return; // Already running activity tracking
     
-    console.log('[useTokenExpiry] 🔴 Entering CRITICAL zone - Starting activity tracking');
+    // console.log('[useTokenExpiry] 🔴 Entering CRITICAL zone - Starting activity tracking');
     
     // Start activity tracking (only when <= 30 seconds)
     removeActivityListeners = startActivityTracking();
@@ -99,7 +99,7 @@ export function useTokenExpiry() {
       clearInterval(countdownInterval);
       countdownInterval = null;
     }
-    console.log('[useTokenExpiry] 🟢 Exiting WARNING zone - Stopped countdown');
+    // console.log('[useTokenExpiry] 🟢 Exiting WARNING zone - Stopped countdown');
   };
 
   /**
@@ -128,7 +128,7 @@ export function useTokenExpiry() {
     // Reset debounce flag
     autoRefreshDebounce = false;
     
-    console.log('[useTokenExpiry] 🟢 Exiting CRITICAL zone - Stopped activity tracking');
+    // console.log('[useTokenExpiry] 🟢 Exiting CRITICAL zone - Stopped activity tracking');
   };
 
   /**
@@ -142,7 +142,7 @@ export function useTokenExpiry() {
     
     // Set timeout untuk auto-logout setelah ACTIVITY_TIMEOUT (30 detik idle)
     idleLogoutTimeout = setTimeout(() => {
-      console.log('[useTokenExpiry] ⏰ Auto-logout triggered - User idle untuk 30 detik di critical zone');
+      // console.log('[useTokenExpiry] ⏰ Auto-logout triggered - User idle untuk 30 detik di critical zone');
       autoLogout();
     }, ACTIVITY_TIMEOUT);
   };
@@ -154,12 +154,12 @@ export function useTokenExpiry() {
     try {
       const useAuth = useAuthStores();
       useAuth.logout();
-      console.log('[useTokenExpiry] ✅ Auto-logout completed');
+      // console.log('[useTokenExpiry] ✅ Auto-logout completed');
       
       // Redirect ke login page
       window.location.href = '/login';
     } catch (error) {
-      console.error('[useTokenExpiry] ❌ Auto-logout error:', error);
+      // console.error('[useTokenExpiry] ❌ Auto-logout error:', error);
       // Fallback: clear localStorage dan redirect
       localStorage.clear();
       window.location.href = '/login';
@@ -172,7 +172,7 @@ export function useTokenExpiry() {
     
     const handleActivity = () => {
       isUserActive.value = true;
-      console.log('[useTokenExpiry] 👤 User ACTIVE detected (activity at critical zone)');
+      // console.log('[useTokenExpiry] 👤 User ACTIVE detected (activity at critical zone)');
       
       // Clear existing timeouts
       if (activityTimeout) {
@@ -186,7 +186,7 @@ export function useTokenExpiry() {
       // TRIGGER AUTO-REFRESH TOKEN
       if (!autoRefreshDebounce) {
         autoRefreshDebounce = true;
-        console.log('[useTokenExpiry] 🔄 Detected activity - Triggering auto-refresh');
+        // console.log('[useTokenExpiry] 🔄 Detected activity - Triggering auto-refresh');
         autoRefreshToken().finally(() => {
           // Reset debounce setelah 2 detik untuk prevent spam
           setTimeout(() => {
@@ -198,7 +198,7 @@ export function useTokenExpiry() {
       // Set timeout untuk mark user as inactive setelah ACTIVITY_TIMEOUT (30 detik)
       activityTimeout = setTimeout(() => {
         isUserActive.value = false;
-        console.log('[useTokenExpiry] 💤 User marked as IDLE (30 sec no activity)');
+        // console.log('[useTokenExpiry] 💤 User marked as IDLE (30 sec no activity)');
         
         // Jika masih di critical zone, schedule idle logout
         if (remainingSeconds.value <= CRITICAL_THRESHOLD) {
@@ -211,7 +211,7 @@ export function useTokenExpiry() {
       window.addEventListener(event, handleActivity);
     });
     
-    console.log('[useTokenExpiry] Activity tracking started (critical zone)');
+    // console.log('[useTokenExpiry] Activity tracking started (critical zone)');
     
     // Initial: schedule logout setelah 30 detik jika tidak ada activity
     scheduleIdleLogout();
@@ -229,7 +229,7 @@ export function useTokenExpiry() {
         clearTimeout(idleLogoutTimeout);
         idleLogoutTimeout = null;
       }
-      console.log('[useTokenExpiry] Activity tracking stopped');
+      // console.log('[useTokenExpiry] Activity tracking stopped');
     };
   };
 
@@ -239,11 +239,11 @@ export function useTokenExpiry() {
       
       const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
-        console.error('[useTokenExpiry] ❌ No refresh token available');
+        // console.error('[useTokenExpiry] ❌ No refresh token available');
         return false;
       }
       
-      console.log('[useTokenExpiry] 🔄 Attempting auto-refresh...');
+      // console.log('[useTokenExpiry] 🔄 Attempting auto-refresh...');
       
       // Use axios directly to bypass Api interceptors
       const response = await axios.post("/api/auth/refresh", {
@@ -255,7 +255,7 @@ export function useTokenExpiry() {
         
         // Calculate new expiry time using utility function
         if (!expires_in) {
-          console.error('[useTokenExpiry] ❌ Backend tidak mengirim expires_in', response.data);
+          // console.error('[useTokenExpiry] ❌ Backend tidak mengirim expires_in', response.data);
           throw new Error('Backend response tidak valid: expires_in tidak ada');
         }
         const expiryTime = calculateTokenExpiryTime(expires_in);
@@ -273,11 +273,11 @@ export function useTokenExpiry() {
           localStorage.setItem("refresh_token", newRefreshToken);
         }
         
-        console.log('[useTokenExpiry] ✅ Token auto-refreshed successfully', {
-          expires_in: expires_in,
-          new_expiry_time: expiryTime,
-          new_expiry_date: new Date(expiryTime).toLocaleString()
-        });
+        // console.log('[useTokenExpiry] ✅ Token auto-refreshed successfully', {
+        //   expires_in: expires_in,
+        //   new_expiry_time: expiryTime,
+        //   new_expiry_date: new Date(expiryTime).toLocaleString()
+        // });
         
         // Trigger storage event for other tabs
         window.dispatchEvent(new StorageEvent('storage', {
@@ -290,7 +290,7 @@ export function useTokenExpiry() {
         return true;
       }
     } catch (error) {
-      console.error('[useTokenExpiry] ❌ Auto refresh failed:', error);
+      // console.error('[useTokenExpiry] ❌ Auto refresh failed:', error);
       return false;
     }
   };
@@ -304,22 +304,22 @@ export function useTokenExpiry() {
     updateRemainingTime();
     
     // Log token expiry info
-    if (storedExpiresIn) {
-      console.log('[useTokenExpiry] 🎯 onMounted: Token info -', {
-        expires_in: storedExpiresIn,
-        remaining_seconds: remainingSeconds.value,
-        expiry_time: localStorage.getItem("token_expiry_time"),
-        expiry_date: new Date(parseInt(localStorage.getItem("token_expiry_time"))).toLocaleString()
-      });
-    }
+    // if (storedExpiresIn) {
+    //   console.log('[useTokenExpiry] 🎯 onMounted: Token info -', {
+    //     expires_in: storedExpiresIn,
+    //     remaining_seconds: remainingSeconds.value,
+    //     expiry_time: localStorage.getItem("token_expiry_time"),
+    //     expiry_date: new Date(parseInt(localStorage.getItem("token_expiry_time"))).toLocaleString()
+    //   });
+    // }
     
     // Check initial state saat mount
     if (remainingSeconds.value <= CRITICAL_THRESHOLD && remainingSeconds.value > 0) {
-      console.log('[useTokenExpiry] Token sudah <= 30 detik saat mount, starting CRITICAL monitoring');
+      // console.log('[useTokenExpiry] Token sudah <= 30 detik saat mount, starting CRITICAL monitoring');
       startCountdownMonitoring();
       startCriticalMonitoring();
     } else if (remainingSeconds.value < WARNING_THRESHOLD && remainingSeconds.value > CRITICAL_THRESHOLD) {
-      console.log('[useTokenExpiry] Token sudah di WARNING zone saat mount, starting countdown');
+      // console.log('[useTokenExpiry] Token sudah di WARNING zone saat mount, starting countdown');
       startCountdownMonitoring();
     }
     
@@ -332,11 +332,11 @@ export function useTokenExpiry() {
     // Watch untuk changes di remainingSeconds
     // Separate logic untuk WARNING (60-30 detik) dan CRITICAL (≤ 30 detik)
     const unwatchRemaining = watch(remainingSeconds, (newVal) => {
-      console.log('[useTokenExpiry] remainingSeconds changed:', newVal);
+      // console.log('[useTokenExpiry] remainingSeconds changed:', newVal);
       
       // CRITICAL ZONE: token <= 30 detik
       if (newVal <= CRITICAL_THRESHOLD && newVal > 0) {
-        console.log('[useTokenExpiry] Entering CRITICAL zone (≤ 30 sec) via watch');
+        // console.log('[useTokenExpiry] Entering CRITICAL zone (≤ 30 sec) via watch');
         // Ensure countdown is running
         if (!countdownInterval) {
           startCountdownMonitoring();
@@ -346,7 +346,7 @@ export function useTokenExpiry() {
       }
       // WARNING ZONE: 60 > token > 30 detik (countdown only, no activity tracking)
       else if (newVal < WARNING_THRESHOLD && newVal > CRITICAL_THRESHOLD) {
-        console.log('[useTokenExpiry] Entering WARNING zone (30-60 sec) via watch');
+        // console.log('[useTokenExpiry] Entering WARNING zone (30-60 sec) via watch');
         // Start countdown monitoring
         if (!countdownInterval) {
           startCountdownMonitoring();
@@ -356,7 +356,7 @@ export function useTokenExpiry() {
       }
       // NORMAL ZONE: token >= 60 detik
       else if (newVal >= WARNING_THRESHOLD) {
-        console.log('[useTokenExpiry] Exiting WARNING zone (≥ 60 sec) via watch');
+        // console.log('[useTokenExpiry] Exiting WARNING zone (≥ 60 sec) via watch');
         stopCountdownMonitoring();
         stopCriticalMonitoring();
       }

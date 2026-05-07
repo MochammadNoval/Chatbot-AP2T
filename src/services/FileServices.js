@@ -130,6 +130,7 @@ export async function updateFiles(id, payload) {
 
 export async function deleteFile(id) {
   try {
+    uploadFileAxios
     const response = await api.delete(`/files/${id}`);
     return response.data;
   } catch (error) {

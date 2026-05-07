@@ -28,12 +28,19 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(["close", "success"]);
 
+// Role options
+const roleOptions = [
+  { value: "admin", label: "Admin" },
+  { value: "user", label: "User" },
+];
+
 // State
 const formData = reactive({
   email: "",
   name: "",
   password: "",
   confirmPassword: "",
+  role: "user", // Default role
 });
 
 const isLoading = ref(false);
@@ -56,6 +63,7 @@ const resetForm = () => {
   formData.name = "";
   formData.password = "";
   formData.confirmPassword = "";
+  formData.role = "user";
   showPassword.value = false;
   showConfirmPassword.value = false;
 };
@@ -69,6 +77,7 @@ watch(
     if (newData && props.isEditMode) {
       formData.email = newData.email || newData.Email || "";
       formData.name = newData.name || newData.Nama || "";
+      formData.role = newData.role || newData.Role || "user";
       formData.password = ""; // Password dikosongkan, user harus input yang baru
     }
   },
@@ -124,6 +133,17 @@ const validateForm = () => {
     return false;
   }
 
+  // Validasi role tidak boleh kosong
+  if (!formData.role.trim()) {
+    Swal.fire({
+      title: "Validasi Gagal",
+      text: "Role tidak boleh kosong",
+      icon: "error",
+      confirmButtonColor: "#3b82f6",
+    });
+    return false;
+  }
+
   // Password validation: wajib untuk create, opsional untuk edit
   if (!props.isEditMode || (props.isEditMode && formData.password)) {
     // Validasi password kosong
@@ -138,7 +158,7 @@ const validateForm = () => {
     }
 
     // Validasi confirm password kosong
-    if (!formData.confirmPassword) {
+    if (!props.isEditMode && !formData.confirmPassword) {
       Swal.fire({
         title: "Validasi Gagal",
         text: "Konfirmasi password tidak boleh kosong",
@@ -196,9 +216,10 @@ const handleSubmit = async () => {
 
     if (props.isEditMode) {
       // Update user
-      const updateData = {
+      const updateData =  {
         email: formData.email.trim(),
         name: formData.name.trim(),
+        role: formData.role.trim(),
       };
 
       // Hanya include password jika ada yang diinput
@@ -224,6 +245,7 @@ const handleSubmit = async () => {
         email: formData.email.trim(),
         name: formData.name.trim(),
         password: formData.password,
+        role: formData.role.trim(),
       });
 
       // Tampilkan success dialog dan tunggu user klik OK
@@ -336,6 +358,23 @@ const closeModal = () => {
           class="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
           :disabled="isLoading"
         />
+      </div>
+
+      <!-- Role Field -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Role <span class="text-red-500">*</span>
+        </label>
+        <select
+          v-model="formData.role"
+          class="w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white"
+          :disabled="isLoading"
+        >
+          <option value="">-- Pilih Role --</option>
+          <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+            {{ role.label }}
+          </option>
+        </select>
       </div>
 
       <!-- Password Field -->

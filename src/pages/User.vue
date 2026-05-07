@@ -2,7 +2,7 @@
 import Swal from "sweetalert2";
 import { UserPlusIcon, PencilIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import InputSearch from "../components/InputSearch.vue";
-import UserCreateModal from "../components/UserCreateModal.vue";
+import UserFormModal from "../components/UserFormModal.vue";
 import Pagination from "../components/Pagination.vue";
 import { ref, onMounted, computed } from "vue";
 import { getUsers, deleteUser } from "../services/User";
@@ -12,12 +12,12 @@ import { useAuthStores } from "../stores/Auth";
 
 const useAuth = useAuthStores()
 // State
-const showModal = ref(false);
+const isUserFormModalOpen = ref(false);
+const userFormMode = ref("create"); // 'create' | 'update'
+const editingUser = ref(null);
 const isLoadingUsers = ref(false);
 const users = ref([]);
 const allUsers = ref([]); // Menyimpan semua user original
-const isEditMode = ref(false);
-const selectedUser = ref(null);
 const currentPage = ref(1); // Halaman saat ini
 const itemsPerPage = 5; // Items per halaman
 const searchQuery = ref(""); // State untuk tracking search query
@@ -66,9 +66,9 @@ const fetchUsers = async () => {
  * Handle modal close
  */
 const handleModalClose = () => {
-  showModal.value = false;
-  isEditMode.value = false;
-  selectedUser.value = null;
+  isUserFormModalOpen.value = false;
+  userFormMode.value = "create";
+  editingUser.value = null;
 };
 
 /**
@@ -146,14 +146,23 @@ const handleDeleteUser = async (userId) => {
 };
 
 /**
+ * Handle create user
+ */
+const handleCreateUser = () => {
+  userFormMode.value = "create";
+  editingUser.value = null;
+  isUserFormModalOpen.value = true;
+};
+
+/**
  * Handle edit user
  */
 const handleEditUser = (userId) => {
   const user = users.value.find((u) => u.id === userId);
   if (user) {
-    selectedUser.value = user;
-    isEditMode.value = true;
-    showModal.value = true;
+    editingUser.value = user;
+    userFormMode.value = "update";
+    isUserFormModalOpen.value = true;
   }
 };
 
@@ -202,11 +211,11 @@ onMounted(() => {
 
 <template>
   <div class="p-4">
-    <!-- User Create Modal -->
-    <UserCreateModal
-      :isOpen="showModal"
-      :isEditMode="isEditMode"
-      :userData="selectedUser"
+    <!-- User Form Modal -->
+    <UserFormModal
+      :is-open="isUserFormModalOpen"
+      :mode="userFormMode"
+      :user-data="editingUser"
       @close="handleModalClose"
       @success="handleUserCreated"
     />
@@ -218,7 +227,7 @@ onMounted(() => {
         <p class="text-gray-500 text-xs">Kelola pengguna dan hak akses</p>
       </span>
       <button
-        @click="showModal = true"
+        @click="handleCreateUser"
         class="flex bg-blue-500 px-4 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
       >
         <UserPlusIcon class="size-5 text-white"></UserPlusIcon>

@@ -7,6 +7,7 @@ import { BriefcaseIcon, FolderIcon } from "@heroicons/vue/24/outline";
 import { useAuthStores } from "../stores/Auth";
 import { useRouter } from "vue-router";
 import Swal from "sweetalert2";
+import { getCurrentUser } from "../services/AuthServices";
 
 const useAuth = useAuthStores();
 const router = useRouter();
@@ -14,6 +15,13 @@ const router = useRouter();
 const isExpand = ref(true);
 const route = useRoute();
 const emit = defineEmits(["toggle"]);
+const userRole = ref("")
+
+onMounted(async() => {
+  const resCurrentUser = await getCurrentUser();
+  userRole.value = resCurrentUser.role; 
+  console.log(userRole.value);
+})
 
 const isActive = (path) => {
   return route.path === path;
@@ -275,7 +283,7 @@ const handleExpand = () => {
           <div
             class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
-              'translate-x-[30%]': isActive('/dashboard-sertifikasi') && isExpand,
+              'translate-x-[20%]': isActive('/dashboard-sertifikasi') && isExpand,
               'translate-x-0': isActive('/dashboard-sertifikasi') && !isExpand,
             }"
           >
@@ -288,7 +296,7 @@ const handleExpand = () => {
                 'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
-             Dashboard Sertifikasi
+             Dashboard Training
             </p>
           </div>
         </router-link>

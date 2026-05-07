@@ -41,13 +41,13 @@ const currentState = computed(() => {
   
   // Token < 1 min
   const state = isUserActive.value ? 'EXPIRING_ACTIVE' : 'EXPIRING_IDLE';
-  console.log(`[TokenExpiryAlert] currentState computed: isExpiringSoon=${isExpiringSoon.value}, isUserActive=${isUserActive.value} → ${state}`);
+  // console.log(`[TokenExpiryAlert] currentState computed: isExpiringSoon=${isExpiringSoon.value}, isUserActive=${isUserActive.value} → ${state}`);
   return state;
 });
 
 // Watch untuk perubahan state dan handle setiap state
 watch(currentState, async (newState, oldState) => {
-  console.log(`[TokenExpiryAlert] State: ${oldState} → ${newState}`);
+  // console.log(`[TokenExpiryAlert] State: ${oldState} → ${newState}`);
   
   if (newState === 'NORMAL' || newState === 'LOGOUT') {
     // Exit critical zone
@@ -63,13 +63,13 @@ watch(currentState, async (newState, oldState) => {
       const success = await autoRefreshToken();
       isRefreshing.value = false;
       
-      if (!success) {
-        console.error('[TokenExpiryAlert] Auto refresh failed');
-      }
+      // if (!success) {
+      //   console.error('[TokenExpiryAlert] Auto refresh failed');
+      // }
     }
     // FIX: Jika popup sudah shown & masih pending user action → close & auto-refresh
     else if (popupShown.value && isAwaitingUserAction.value && !isPopupClosing.value) {
-      console.log('[TokenExpiryAlert] User resumed while popup pending → Closing popup');
+      // console.log('[TokenExpiryAlert] User resumed while popup pending → Closing popup');
       isPopupClosing.value = true;       // Set flag: sedang menutup popup
       shouldAutoClose.value = true;      // Signal popup result handler untuk auto-refresh
       await Swal.close();                // Close popup agar promise selesai
@@ -85,7 +85,7 @@ watch(currentState, async (newState, oldState) => {
   
   if (newState === 'EXPIRING_IDLE' && !popupShown.value) {
     // User idle & token expiring & popup belum ditampilkan → Show popup ONCE
-    console.log('[TokenExpiryAlert] Showing popup (show once)');
+
     // RESET ALL FLAGS - Ensure clean state
     popupShown.value = true;
     isAwaitingUserAction.value = true;  // Mark: popup pending
@@ -125,7 +125,7 @@ watch(currentState, async (newState, oldState) => {
     
     if (result.isConfirmed) {
       // User memilih untuk refresh token
-      console.log('[TokenExpiryAlert] User clicked Perpanjang Session');
+      // console.log('[TokenExpiryAlert] User clicked Perpanjang Session');
       isRefreshing.value = true;
       const success = await autoRefreshToken();
       isRefreshing.value = false;
@@ -151,7 +151,7 @@ watch(currentState, async (newState, oldState) => {
       // FIX: Check if auto-close (user resumed) vs user manual dismiss
       if (shouldAutoClose.value) {
         // Program closed it (user resumed activity) → Auto-refresh tanpa logout
-        console.log('[TokenExpiryAlert] Popup auto-closed (user resumed) → Auto-refreshing');
+        // console.log('[TokenExpiryAlert] Popup auto-closed (user resumed) → Auto-refreshing');
         
         // NOW reset flags - AFTER handling the close
         isPopupClosing.value = false;   // Reset: no longer closing
@@ -163,13 +163,13 @@ watch(currentState, async (newState, oldState) => {
           const success = await autoRefreshToken();
           isRefreshing.value = false;
           
-          if (!success) {
-            console.error('[TokenExpiryAlert] Auto refresh failed after resume');
-          }
+          // if (!success) {
+          //   console.error('[TokenExpiryAlert] Auto refresh failed after resume');
+          // }
         }
       } else {
         // User memilih logout (manual dismiss)
-        console.log('[TokenExpiryAlert] User manually dismissed → Logout');
+        // console.log('[TokenExpiryAlert] User manually dismissed → Logout');
         popupShown.value = false;  // Reset flag sebelum logout
         auth.logout();
         router.push("/login");

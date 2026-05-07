@@ -90,7 +90,7 @@ export async function getUserById(id) {
 
 /**
  * Create user baru
- * @param {Object} userData - { email, name, password }
+ * @param {Object} userData - { email, name, password, role }
  * @returns {Promise}
  */
 export async function createUser(userData) {
@@ -124,6 +124,21 @@ export async function createUser(userData) {
       throw new Error("Nama tidak boleh kosong");
     }
 
+    // Validasi role
+    if (
+      !userData.role ||
+      typeof userData.role !== "string" ||
+      userData.role.trim() === ""
+    ) {
+      throw new Error("Role tidak boleh kosong");
+    }
+
+    // Validasi role adalah salah satu dari yang diizinkan
+    const validRoles = ["admin", "user"];
+    if (!validRoles.includes(userData.role.toLowerCase())) {
+      throw new Error(`Role harus salah satu dari: ${validRoles.join(", ")}`);
+    }
+
     // Validasi password
     const passwordValidation = validatePassword(userData.password);
     if (!passwordValidation.isValid) {
@@ -135,6 +150,7 @@ export async function createUser(userData) {
       email: userData.email.trim().toLowerCase(),
       name: userData.name.trim(),
       password: userData.password,
+      role: userData.role.trim().toLowerCase(),
     };
 
     // Request ke server
