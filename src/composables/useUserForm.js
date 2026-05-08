@@ -146,12 +146,8 @@ export function useUserForm() {
       email: formData.email.trim().toLowerCase(),
       name: formData.name.trim(),
       role: formData.role.trim().toLowerCase(),
+      password: formData.password ? formData.password : null,
     };
-
-    // Hanya include password jika ada yang diinput
-    if (formData.password) {
-      payload.password = formData.password;
-    }
 
     return payload;
   };

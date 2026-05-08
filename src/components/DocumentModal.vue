@@ -173,7 +173,6 @@ watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
 // ============================================
 
 onMounted(async () => {
-
   try {
     tag.value = await getTags();
     groupTag.value = await getTagGroups();

@@ -2,9 +2,12 @@
 import InputSearch from "../components/InputSearch.vue";
 import DocumentModal from "../components/DocumentModal.vue";
 import PreviewDocumentModal from "../components/PreviewDocumentModal.vue";
+import ShareLinkModal from "../components/ShareLinkModal.vue";
 import TagSearchFilter from "../components/TagSearchFilter.vue";
 import DownloadProgressBar from "../components/DownloadProgressBar.vue";
 import { useToast } from "primevue/usetoast";
+import Menu from "primevue/menu";
+import Button from "primevue/button";
 import { usePreviewModal } from "../composables/usePreviewModal";
 import Swal from "sweetalert2";
 import api from "../services/Api";
@@ -17,6 +20,7 @@ import {
   ArrowDownTrayIcon,
   TrashIcon,
   FolderIcon,
+  EllipsisVerticalIcon,
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref, computed, watch } from "vue";
@@ -67,6 +71,13 @@ const downloadFileSize = ref(0);
 const downloadedSize = ref(0);
 const downloadStartTime = ref(0);
 let abortController = null;
+
+// Menu references for action dropdown
+const menuRefs = ref({});
+
+// Share Modal state
+const showShareModal = ref(false);
+const selectedDocumentForShare = ref(null);
 
 // Computed untuk paginated documents
 const paginatedDocuments = computed(() => {
@@ -132,6 +143,18 @@ const editDocument = async (id) => {
   modalType.value = "editDocument";
   idDocument.value = id;
   showModal.value = true;
+};
+
+// Function untuk open share modal
+const openShareModal = (document) => {
+  selectedDocumentForShare.value = document;
+  showShareModal.value = true;
+};
+
+// Function untuk close share modal
+const closeShareModal = () => {
+  showShareModal.value = false;
+  selectedDocumentForShare.value = null;
 };
 
 // Function untuk hapus dokumen
@@ -384,6 +407,16 @@ watch(itemsPerPage, () => {
       @download="closePreviewModal"
     />
 
+    <!-- Share Link Modal -->
+    <ShareLinkModal
+      v-if="selectedDocumentForShare"
+      :isOpen="showShareModal"
+      :documentId="selectedDocumentForShare.id"
+      :documentName="selectedDocumentForShare.filename"
+      @close="closeShareModal"
+      @shared="closeShareModal"
+    />
+
     <!-- Download Progress Bar -->
     <DownloadProgressBar
       v-if="isDownloading"
@@ -507,15 +540,6 @@ watch(itemsPerPage, () => {
               </td>
               <td class="px-6 py-2 text-center">
                 <div class="flex justify-center gap-2">
-                  <!-- Button Preview -->
-                  <button
-                    @click="handlePreviewDocument(document)"
-                    class="p-2 cursor-pointer text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                    title="Preview"
-                  >
-                    <EyeIcon class="size-5"></EyeIcon>
-                  </button>
-
                   <!-- Button Edit -->
                   <button
                     @click="editDocument(document.id)"
@@ -523,15 +547,6 @@ watch(itemsPerPage, () => {
                     title="Edit"
                   >
                     <PencilIcon class="size-5"></PencilIcon>
-                  </button>
-
-                  <!-- Button Download -->
-                  <button
-                    @click="handledownloadFile(document.id)"
-                    class="p-2 cursor-pointer text-purple-600 hover:bg-purple-100 rounded-lg transition-colors"
-                    title="Download"
-                  >
-                    <ArrowDownTrayIcon class="size-5"></ArrowDownTrayIcon>
                   </button>
 
                   <!-- Button Hapus -->
@@ -542,6 +557,39 @@ watch(itemsPerPage, () => {
                   >
                     <TrashIcon class="size-5"></TrashIcon>
                   </button>
+
+                  <!-- Menu Button (Three Dots) -->
+                  <button
+                    @click="(event) => menuRefs[document.id]?.toggle(event)"
+                    class="p-2 cursor-pointer text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    title="Lainnya"
+                  >
+                    <EllipsisVerticalIcon class="size-5"></EllipsisVerticalIcon>
+                  </button>
+
+                  <!-- Action Menu Dropdown -->
+                  <Menu
+                    :ref="(el) => menuRefs[document.id] = el"
+                    :model="[
+                      {
+                        label: 'Preview',
+                        icon: 'pi pi-eye',
+                        command: () => handlePreviewDocument(document),
+                      },
+                      {
+                        label: 'Download',
+                        icon: 'pi pi-download',
+                        command: () => handledownloadFile(document.id),
+                      },
+                      {
+                        label: 'Share Link',
+                        icon: 'pi pi-share-alt',
+                        command: () => openShareModal(document),
+                      },
+                    ]"
+                    :popup="true"
+                    class="w-40"
+                  />
                 </div>
               </td>
             </tr>

@@ -310,8 +310,109 @@ export async function uploadExcelFile(file, onProgress = null, cancelToken = nul
       fileMessage = extractErrorMessage(error, fileMessage);
     } else if (error.request) {
       fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else {
+      fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
+    }
+
+    throw new Error(fileMessage);
+  }
+}
+
+/**
+ * Share dokumen dengan password dan expired date
+ * @param {number} fileId - ID file yang akan di-share
+ * @param {Object} payload - Object berisi password dan expired_at
+ * @param {string} payload.password - Password untuk share link
+ * @param {string} payload.expired_at - Tanggal kedaluwarsa (format ISO 8601)
+ * @returns {Promise<Object>} Response berisi share_url
+ */
+export async function shareDocumentLink(fileId, payload) {
+  console.log(fileId, payload)
+  try {
+    if (!fileId) {
+      throw new Error("File ID diperlukan");
+    }
+
+    if (!payload.expired_at) {
+      throw new Error("Tanggal kedaluwarsa diperlukan");
+    }
+
+    const response = await api.post(`/files/${fileId}/share`, {
+      password: payload.password,
+      expired_at: payload.expired_at,
+    });
+
+    return response.data;
+  } catch (error) {
+    let fileMessage = "Gagal membuat share link, silahkan coba lagi";
+
+    if (error.response) {
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
     } else if (error.message) {
-      // Error dari validasi lokal
+      fileMessage = error.message;
+    } else {
+      fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
+    }
+
+    throw new Error(fileMessage);
+  }
+}
+
+/**
+ * Hapus share link untuk dokumen
+ * @param {number} fileId - ID file yang share link-nya akan dihapus
+ * @returns {Promise<Object>} Response dari backend
+ */
+export async function deleteShareLink(fileId) {
+  try {
+    if (!fileId) {
+      throw new Error("File ID diperlukan");
+    }
+
+    const response = await api.delete(`/files/${fileId}/share`);
+
+    return response.data;
+  } catch (error) {
+    let fileMessage = "Gagal menghapus share link, silahkan coba lagi";
+
+    if (error.response) {
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else if (error.message) {
+      fileMessage = error.message;
+    } else {
+      fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
+    }
+
+    throw new Error(fileMessage);
+  }
+}
+
+/**
+ * Ambil share link yang sudah ada untuk dokumen
+ * @param {number} fileId - ID file
+ * @returns {Promise<Object>} Response berisi share_token
+ */
+export async function getShareLink(fileId) {
+  try {
+    if (!fileId) {
+      throw new Error("File ID diperlukan");
+    }
+
+    const response = await api.get(`/files/${fileId}/share`);
+
+    return response.data;
+  } catch (error) {
+    let fileMessage = "Gagal mengambil share link, silahkan coba lagi";
+
+    if (error.response) {
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else if (error.message) {
       fileMessage = error.message;
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
