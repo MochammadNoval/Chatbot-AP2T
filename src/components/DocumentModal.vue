@@ -3,7 +3,7 @@ import { onMounted, ref, watch, computed } from "vue";
 import { XCircleIcon } from "@heroicons/vue/24/outline";
 import { Toast, useToast } from "primevue";
 import { getFilesById, updateFiles, uploadFileAxios } from "../services/FileServices";
-import { uploadExcelFile } from "../services/ExcelServices";
+import { downloadExcelFile, uploadExcelFile } from "../services/ExcelServices";
 import { useRouter } from "vue-router";
 import { getTagGroups, getTags } from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
@@ -14,10 +14,17 @@ import axios from "axios";
 // Sub-components
 import PDFUploadSection from "./modals/PDFUploadSection.vue";
 import ExcelUploadSection from "./modals/ExcelUploadSection.vue";
+import DownloadProgressBar from "./DownloadProgressBar.vue";
 
 const useAuth = useAuthStores();
 const toast = useToast();
 const router = useRouter();
+const showDownloadProgress = ref(false);
+const downloadProgress = ref(0);
+const downloadFileSize = ref(0);
+const downloadedSize = ref(0);
+const downloadStartTime = ref(0);
+const downloadFileName = ref('template-dashboard-sertifikasi.xlsx');
 
 /**
  * ============================================
@@ -455,9 +462,66 @@ const closeModal = () => {
   
   emit("close");
 };
+
+
+// ============================================
+// DOWNLOAD TEMPLATE EXCEL (DASHBOARD SERTIFIKASI)
+// ============================================
+
+
+const handleDownloadTemplate = async () => {
+  try {
+    showDownloadProgress.value = true;
+    downloadProgress.value = 0;
+    downloadedSize.value = 0;
+    downloadStartTime.value = Date.now();
+    
+    const blob = await downloadExcelFile((progressEvent) => {
+      const total = progressEvent.total || 1;
+      const loaded = progressEvent.loaded || 0;
+      
+      downloadFileSize.value = total;
+      downloadedSize.value = loaded;
+      downloadProgress.value = Math.round((loaded / total) * 100);
+    });
+    
+    // Create temporary URL for blob
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create anchor element and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = downloadFileName.value;
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    // Set progress to 100% briefly before hiding
+    downloadProgress.value = 100;
+    setTimeout(() => {
+      showDownloadProgress.value = false;
+    }, 1000);
+  } catch (error) {
+    console.error('Download template gagal:', error);
+    showDownloadProgress.value = false;
+    alert('Gagal download template: ' + error.message);
+  }
+};
 </script>
 
 <template>
+    <DownloadProgressBar
+    v-if="showDownloadProgress"
+    :fileName="downloadFileName"
+    :progress="downloadProgress"
+    :fileSize="downloadFileSize"
+    :downloadedSize="downloadedSize"
+    :startTime="downloadStartTime"
+    @cancel-request="handleCancelDownload"
+  />
   <!-- Modal Backdrop -->
   <div
     v-if="props.isOpen"
@@ -600,6 +664,15 @@ const closeModal = () => {
           class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
         >
           {{ isLoading ? "Loading..." : "Update" }}
+        </button>
+        
+        <!-- Download Template Excel Button (create mode only) -->
+        <button
+          v-if="(props.action === 'create' || (props.mode === 'excel' || props.type === 'ModalSertifikasi')) && uploadProgress === 0"
+          @click="handleDownloadTemplate"
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+        >
+          {{ isLoading ? "Loading..." : "Download Template" }}
         </button>
 
         <!-- Upload Button (create mode only) -->

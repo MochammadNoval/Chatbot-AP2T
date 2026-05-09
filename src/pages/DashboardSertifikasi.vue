@@ -21,7 +21,7 @@
     :idDocument="idDocument"
   />
 
-  <header class="flex justify-between">
+  <header class="flex justify-between mb-4 ">
     <section>
       <h1 class="text-black font-bold">Dashboard Training</h1>
       <p class="text-gray-400 text-xs mt-1 font-semibold">
@@ -29,37 +29,40 @@
       </p>
     </section>
 
-    <div class="flex gap-x-2">
       <button 
         @click="openUpdateModal"
         class="flex bg-blue-500 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
       >
-          <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
-          <p class="text-sm font-semibold">Update Dashboard</p> 
+          <PlusCircleIcon class="size-4 text-white"></PlusCircleIcon>
+          <p class="text-xs font-semibold">Update Dashboard</p> 
       </button>
-  
-      <button 
-        @click="handleDownloadTemplate"
-        class="flex bg-green-500 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-green-600 transition-colors cursor-pointer"
-      >
-          <ArrowDownOnSquareIcon class="size-5 text-white"></ArrowDownOnSquareIcon>
-          <p class="text-sm font-semibold">Download Template</p> 
-      </button>
-    </div>
-
   </header>
-  <div
-      class="rounded-xl mt-5 shadow-md shadow-gray-200/90 border border-slate-300/40"
-    >
-        <iframe
-          :src="tableauUrl"
-          width="100%"
-          height="600"
-          frameborder="0"
-        ></iframe>
-        
-      <component :is="icon" class="text-blue-500 w-9 mx-auto" />
+  
+    <div class="w-full">
+      <div
+      class="w-full h-full"
+      id="viz1777964139718">
+          <object class="tableauViz">
+        <param name="host_url" value="https%3A%2F%2Fpublic.tableau.com%2F" />
+        <param name="embed_code_version" value="3" />
+        <param name="site_root" value="" />
+        <param name="name" value="deploy_17779467286860/Dashboard1" />
+        <param name="tabs" value="no" />
+        <param name="toolbar" value="yes" />
+        <param
+          name="static_image"
+          value="https://public.tableau.com/static/images/de/deploy_17779467286860/Dashboard1/1.png"
+        />
+        <param name="animate_transition" value="yes" />
+        <param name="display_static_image" value="yes" />
+        <param name="display_spinner" value="yes" />
+        <param name="display_overlay" value="yes" />
+        <param name="display_count" value="yes" />
+        <param name="language" value="en-US" />
+      </object>
     </div>
+  </div>
+
 </div>
  
 </template>
@@ -87,6 +90,12 @@ const downloadedSize = ref(0);
 const downloadStartTime = ref(0);
 const downloadFileName = ref('template-dashboard-sertifikasi.xlsx');
 let cancelTokenSource = null;
+
+import { onMounted } from "vue";
+
+onMounted(() => {
+  initTableau();
+});
 
 // Handler untuk membuka modal update
 const openUpdateModal = () => {
@@ -147,4 +156,31 @@ const handleModalCompleted = () => {
   showModal.value = false;
   // Tambahkan logika refresh atau update dashboard di sini jika diperlukan
 };
+
+
+const initTableau = () => {
+  const divElement = document.getElementById("viz1777964139718");
+  if (!divElement) return;
+
+  const vizElement = divElement.getElementsByTagName("object")[0];
+
+  // Fullscreen
+  vizElement.style.width = "100%";
+  vizElement.style.height = "100vh";
+
+  const scriptElement = document.createElement("script");
+  scriptElement.src =
+    "https://public.tableau.com/javascripts/api/viz_v1.js";
+
+  vizElement.parentNode.insertBefore(scriptElement, vizElement);
+};
 </script>
+
+<style scoped>
+
+
+.tableauViz {
+  width: 100%;
+  height: 100%;
+}
+</style>

@@ -15,6 +15,7 @@ import DashboardSertifikasi from "../pages/DashboardSertifikasi.vue"
 
 import { useAuthStores } from "../stores/Auth";
 
+
 const routes = [
   {
     path: "/",
