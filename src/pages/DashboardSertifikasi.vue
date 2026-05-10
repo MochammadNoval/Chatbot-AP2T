@@ -30,6 +30,7 @@
     </section>
 
       <button 
+        v-if = "can('admin : view')"
         @click="openUpdateModal"
         class="flex bg-blue-500 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
       >
@@ -73,6 +74,10 @@ import DocumentModal from "../components/DocumentModal.vue";
 import DownloadProgressBar from "../components/DownloadProgressBar.vue";
 import { PlusCircleIcon, ArrowDownOnSquareIcon } from "@heroicons/vue/24/outline";
 import { downloadExcelFile } from "../services/ExcelServices";
+
+// PERMISSION ///
+import {usePermission} from "../composables/usePermissions"
+const {can} = usePermission()
 
 const tableauUrl =
   "https://id.wikipedia.org/wiki/Main_Page";

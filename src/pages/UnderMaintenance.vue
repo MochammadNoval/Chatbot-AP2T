@@ -11,7 +11,7 @@ const goBack = () => {
   >
     <!-- 404 Icon -->
     <div class="mb-4">
-      <img src="./../image/coming_soon_page.png" alt="" width="180" />
+      <img src="./../image/coming_soon_page.png" alt="" width="280" />
     </div>
 
     <!-- 404 Text
@@ -28,7 +28,7 @@ const goBack = () => {
     </p>
 
     <!-- Buttons -->
-    <div class="flex gap-4">
+    <!-- <div class="flex gap-4">
       <router-link
         to="/dashboard"
         class="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-all"
@@ -41,7 +41,7 @@ const goBack = () => {
       >
         Kembali
       </button>
-    </div>
+    </div> -->
   </div>
 </template>
 

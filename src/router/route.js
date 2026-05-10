@@ -14,6 +14,7 @@ import DashboardSertifikasi from "../pages/DashboardSertifikasi.vue"
 
 
 import { useAuthStores } from "../stores/Auth";
+import NotAllowed from "../pages/NotAllowed.vue";
 
 
 const routes = [
@@ -52,11 +53,17 @@ const routes = [
         path: "/tags",
         name: "tags",
         component: Tags,
+        meta : {
+          permissions: ['admin : view']
+        }
       },
       {
         path: "/user",
         name: "user",
         component: User,
+        meta: {
+          permissions: ['admin : view']
+        }
       },
       {
         path: "/profile",
@@ -68,6 +75,24 @@ const routes = [
         name: "dashboard-sertifikasi",
         component: DashboardSertifikasi,
       },
+      {
+        path: "/403",
+        name: "403",
+        component: NotAllowed
+      },
+      {
+        path: "/setting",
+        name: "setting",
+        component: Maintenance,
+        meta: { requiresAuth: true },
+      },
+
+      {
+        path: "/profile",
+        name: "profile",
+        component: Maintenance,
+        meta: { requiresAuth: true },
+      },
     ],
   },
   {
@@ -76,19 +101,7 @@ const routes = [
     component: Maintenance,
     meta: { requiresAuth: true },
   },
-  {
-    path: "/setting",
-    name: "setting",
-    component: Maintenance,
-    meta: { requiresAuth: true },
-  },
 
-  {
-    path: "/profile",
-    name: "profile",
-    component: Maintenance,
-    meta: { requiresAuth: true },
-  },
   {
     path: "/:pathMatch(.*)*",
     name: "not-found",
@@ -107,7 +120,26 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !token) {
     auth.setMessage("Silakan login terlebih dahulu");
     next("/login");
-  } else {
+  } if (to.meta.permissions) {
+    console.log("User:", auth.user)
+    console.log("User Permissions:", auth.user?.permissions)
+    console.log("Required:", to.meta.permissions)
+
+    const allowed = to.meta.permissions.every(permissions => 
+      auth.user?.permissions.includes(permissions)
+    )
+
+    console.log("Allowed", allowed);
+
+
+    if (!allowed) {
+      auth.setMessage("Anda tidak memiliki akses untuk halaman ini");
+      next("/403");
+    } else {
+      next();
+    }
+  } 
+  else {
     next();
   }
 });

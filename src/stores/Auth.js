@@ -1,8 +1,10 @@
 import { defineStore } from "pinia";
 import { isTokenExpired, isTokenExpiringSoon, calculateTokenExpiryTime } from "../utils/tokenUtils";
+import { ROLE_PERMISSIONS } from "../constants/roles";
 
 export const useAuthStores = defineStore("auth", {
   state: () => ({
+    user: null,
     username: "",
     loggedIn: false,
     isAdmin: false,
@@ -86,6 +88,15 @@ export const useAuthStores = defineStore("auth", {
       localStorage.removeItem("token_expiry_time");
       localStorage.removeItem("token_expires_in");  // Remove stored expires_in
     },
+
+    setUser(userData){
+      const permissions = ROLE_PERMISSIONS[userData.role] || []; 
+      this.user = {
+        ...userData, permissions 
+      }
+      localStorage.setItem("ROLE", JSON.stringify(permissions))
+    },
+
     handleUnauthorized(){
       if(this.sessionExpired) return;
       this.sessionExpired = true;

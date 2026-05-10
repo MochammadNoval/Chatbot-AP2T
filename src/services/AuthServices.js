@@ -37,11 +37,11 @@ export async function Login(user) {
       throw new Error('Failed to calculate token expiry time');
     }
 
-    console.log('[Login] 🔐 Token received:', {
-      expires_in,
-      expiryTime,
-      expiryDate: new Date(expiryTime).toLocaleString()
-    });
+    // console.log('[Login] 🔐 Token received:', {
+    //   expires_in,
+    //   expiryTime,
+    //   expiryDate: new Date(expiryTime).toLocaleString()
+    // });
 
     // Simpan tokens ke localStorage
     localStorage.setItem("access_token", access_token);
@@ -58,12 +58,15 @@ export async function Login(user) {
     // Ambil user data dari /auth/me
     const userData = await getCurrentUser();
 
+    useAuth.setUser(userData);
+    
     // Update Pinia auth store
     useAuth.login(userData, {
       access_token,
       refresh_token,
       expires_in
     });
+
 
     return {
       userData,

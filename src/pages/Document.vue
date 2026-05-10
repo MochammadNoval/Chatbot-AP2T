@@ -21,6 +21,7 @@ import {
   TrashIcon,
   FolderIcon,
   EllipsisVerticalIcon,
+  ArrowDownOnSquareStackIcon
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref, computed, watch } from "vue";
@@ -33,6 +34,10 @@ import {
 import { useAuthStores } from "../stores/Auth";
 import { getTagGroups, getTags } from "../services/Tags";
 import Pagination from "../components/Pagination.vue";
+
+// PERMISSION ///
+import {usePermission} from "../composables/usePermissions"
+const {can} = usePermission()
 
 const useAuth = useAuthStores();
 const toast = useToast();
@@ -429,13 +434,14 @@ watch(itemsPerPage, () => {
       @cancel-request="handleCancelDownloadRequest"
     />
 
-    <section class="flex">
+    <section class="flex justify-between">
       <span>
         <h1 class="text-black font-bold">Manajemen Dokumen</h1>
         <p class="text-gray-500 text-xs">Kelola dokumen dengan format PDF</p>
       </span>
 
       <router-link
+        v-if="can('admin: view')"
         to="/tags"
         @click="
           showModal = true;
@@ -449,6 +455,7 @@ watch(itemsPerPage, () => {
         </p>
       </router-link>
       <button
+      v-if="can('admin: view')"
         @click="
           showModal = true;
           modalType = 'UploadDocument';
@@ -541,8 +548,33 @@ watch(itemsPerPage, () => {
               </td>
               <td class="px-6 py-2 text-center">
                 <div class="flex justify-center gap-2">
+                  
+
+                  <!-- BUTTON SHOW IF ROLE === USER -->
+
+                   <button
+                    v-if="can('user : view')"
+                    @click="handlePreviewDocument(document)"
+                    class="p-2 cursor-pointer text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
+                    title="Preview"
+                  >
+                    <EyeIcon class="size-5"></EyeIcon>
+                  </button>
+
+                   <button
+                    v-if="can('user : view')"
+                    @click="handledownloadFile(document.id)"
+                    class="p-2 cursor-pointer text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                    title="Download"
+                  >
+                    <ArrowDownOnSquareStackIcon class="size-5"></ArrowDownOnSquareStackIcon>
+                  </button>
+
+                  <!--  -->
+
                   <!-- Button Edit -->
                   <button
+                    v-if="can('admin: view')"
                     @click="editDocument(document.id)"
                     class="p-2 cursor-pointer text-green-600 hover:bg-green-100 rounded-lg transition-colors"
                     title="Edit"
@@ -552,6 +584,7 @@ watch(itemsPerPage, () => {
 
                   <!-- Button Hapus -->
                   <button
+                    v-if="can('admin: view')"
                     @click="handleDeleteFile(document.id)"
                     class="p-2 cursor-pointer text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                     title="Hapus"
@@ -561,6 +594,7 @@ watch(itemsPerPage, () => {
 
                   <!-- Menu Button (Three Dots) -->
                   <button
+                    v-if = "can('admin : view')"
                     @click="(event) => menuRefs[document.id]?.toggle(event)"
                     class="p-2 cursor-pointer text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                     title="Lainnya"
@@ -570,6 +604,7 @@ watch(itemsPerPage, () => {
 
                   <!-- Action Menu Dropdown -->
                   <Menu
+
                     :ref="(el) => menuRefs[document.id] = el"
                     :model="[
                       {
