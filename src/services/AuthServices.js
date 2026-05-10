@@ -59,14 +59,14 @@ export async function Login(user) {
     const userData = await getCurrentUser();
 
     useAuth.setUser(userData);
-    
+
     // Update Pinia auth store
     useAuth.login(userData, {
       access_token,
       refresh_token,
       expires_in
     });
-
+    useAuth.isAdmin = userData.role === 'admin' ? true : false;
 
     return {
       userData,

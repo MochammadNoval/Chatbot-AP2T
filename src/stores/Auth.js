@@ -29,7 +29,6 @@ export const useAuthStores = defineStore("auth", {
     login(user, tokens = {}) {
       this.username = user.name;
       this.loggedIn = true;
-      this.isAdmin = user.isAdmin || false;
       
       // Simpan tokens
       this.access_token = tokens.access_token || localStorage.getItem("access_token");

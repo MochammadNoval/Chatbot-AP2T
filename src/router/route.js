@@ -76,6 +76,11 @@ const routes = [
         component: DashboardSertifikasi,
       },
       {
+        path: "/talent-management",
+        name: "talent-management",
+        component: Maintenance,
+      },
+      {
         path: "/403",
         name: "403",
         component: NotAllowed
@@ -84,24 +89,15 @@ const routes = [
         path: "/setting",
         name: "setting",
         component: Maintenance,
-        meta: { requiresAuth: true },
       },
 
       {
         path: "/profile",
         name: "profile",
         component: Maintenance,
-        meta: { requiresAuth: true },
       },
     ],
   },
-  {
-    path: "/talent-management",
-    name: "talent-management",
-    component: Maintenance,
-    meta: { requiresAuth: true },
-  },
-
   {
     path: "/:pathMatch(.*)*",
     name: "not-found",

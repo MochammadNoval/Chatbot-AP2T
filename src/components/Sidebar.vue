@@ -433,7 +433,7 @@ const handleExpand = () => {
       </div>
       <span :hidden="!isExpand" class="ms-2 transition-all duration-300 ease-in-out" style="transition-delay: 300ms">
         <p class="font-bold text-black text-md">{{ useAuth.username }}</p>
-        <p class="text-slate-700/80 text-md">User</p>
+        <p class="text-slate-700/80 text-md">{{useAuth.isAdmin ? "Admin" : "User"}}</p>
       </span>
       <svg
         @click="handleLogout"
