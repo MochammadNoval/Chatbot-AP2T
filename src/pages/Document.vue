@@ -441,7 +441,7 @@ watch(itemsPerPage, () => {
       </span>
 
       <router-link
-        v-if="can('admin: view')"
+        v-if="can('admin : view')"
         to="/tags"
         @click="
           showModal = true;
@@ -574,7 +574,7 @@ watch(itemsPerPage, () => {
 
                   <!-- Button Edit -->
                   <button
-                    v-if="can('admin: view')"
+                    v-if="can('admin : view')"
                     @click="editDocument(document.id)"
                     class="p-2 cursor-pointer text-green-600 hover:bg-green-100 rounded-lg transition-colors"
                     title="Edit"
@@ -584,7 +584,7 @@ watch(itemsPerPage, () => {
 
                   <!-- Button Hapus -->
                   <button
-                    v-if="can('admin: view')"
+                    v-if="can('admin : view')"
                     @click="handleDeleteFile(document.id)"
                     class="p-2 cursor-pointer text-red-600 hover:bg-red-100 rounded-lg transition-colors"
                     title="Hapus"
