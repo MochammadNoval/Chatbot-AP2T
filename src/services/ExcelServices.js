@@ -65,16 +65,22 @@ export const getExcelFileById = async (id) => {
 /**
  * Download Excel file
  * @param {function} onDownloadProgress - Callback untuk tracking progress download
+ * @param {CancelToken} cancelToken - Token untuk cancel download
  * @returns {Promise<Blob>} File blob yang siap didownload
  */
-export const downloadExcelFile = async (onDownloadProgress) => {
+export const downloadExcelFile = async (onDownloadProgress, cancelToken) => {
   try {
     const response = await api.get(`/excel-import/template`, {
       responseType: 'blob',
       onDownloadProgress,
+      cancelToken,
     });
     return response.data;
   } catch (error) {
+    if (axios.isCancel(error)) {
+      throw new Error('Download dibatalkan');
+    }
+
     const message = error.response?.data?.message || 'Gagal download file Excel';
     throw new Error(message);
   }

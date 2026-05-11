@@ -1,42 +1,20 @@
 <script setup>
 import { onMounted, ref, watch, computed } from "vue";
-import { XCircleIcon } from "@heroicons/vue/24/outline";
-import { Toast, useToast } from "primevue";
-import { getFilesById, updateFiles, uploadFileAxios } from "../services/FileServices";
-import { downloadExcelFile, uploadExcelFile } from "../services/ExcelServices";
+import { PlusCircleIcon, XCircleIcon } from "@heroicons/vue/24/outline";
+import { ProgressSpinner, Toast, useToast } from "primevue";
+import {
+  getFilesById,
+  updateFiles,
+  uploadFileAxios,
+} from "../services/FileServices";
 import { useRouter } from "vue-router";
+import CustomMultiSelect from "./CustomMultiSelect.vue";
 import { getTagGroups, getTags } from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
-import { useDocumentUploadConfig } from "../composables/useDocumentUploadConfig";
 import Swal from "sweetalert2";
 import axios from "axios";
 
-// Sub-components
-import PDFUploadSection from "./modals/PDFUploadSection.vue";
-import ExcelUploadSection from "./modals/ExcelUploadSection.vue";
-import DownloadProgressBar from "./DownloadProgressBar.vue";
-
 const useAuth = useAuthStores();
-const toast = useToast();
-const router = useRouter();
-const showDownloadProgress = ref(false);
-const downloadProgress = ref(0);
-const downloadFileSize = ref(0);
-const downloadedSize = ref(0);
-const downloadStartTime = ref(0);
-const downloadFileName = ref('template-dashboard-sertifikasi.xlsx');
-
-/**
- * ============================================
- * PROPS & EMITS
- * ============================================
- * 
- * mode: 'pdf' | 'excel' (NEW - untuk support multiple file types)
- * action: 'create' | 'edit' | 'view' (NEW - replace type prop)
- * 
- * Backward compatibility:
- * - Jika menggunakan 'type' prop, akan auto-convert ke mode='pdf'
- */
 
 const props = defineProps({
   isOpen: {
@@ -45,73 +23,20 @@ const props = defineProps({
   },
   idDocument: {
     type: Number,
-    default: null,
+    required: true,
   },
-  // NEW Props
-  mode: {
-    type: String,
-    default: 'pdf', // 'pdf' | 'excel'
-  },
-  action: {
-    type: String,
-    default: 'create', // 'create' | 'edit' | 'view'
-  },
-  
-  // OLD Props (backward compat)
   type: {
     type: String,
-    default: 'UploadDocument', // 'UploadDocument' | 'editDocument'
-  },
-  
-  // For old API
-  idDocument: {
-    type: Number,
-    default: null,
+    required: true,
   },
 });
 
-const emit = defineEmits(["close", "upload", "completed"]);
-
-// ============================================
-// CONFIG & STATE
-// ============================================
-
-const { config: uploadConfig, validateFile, formatBytes } = useDocumentUploadConfig(props.mode);
-
-// PDF-specific state
-const groupTag = ref([]);
+const groupTag = ref([])
 const tag = ref([]);
 const selectedTag = ref([]);
 const selectedGroupTag = ref([]);
-const nameFileForPlaceholder = ref("");
-const fileById = ref("");
-const listTagInFile = ref([]);
 
-// General upload state
-const formData = ref({
-  filename: "",
-  tag_ids: "",
-  file: null,
-  is_index: false,
-});
-
-const isLoading = ref(false);
-const isDragging = ref(false);
-const fileInput = ref(null);
-
-// Progress tracking states
-const uploadProgress = ref(0);
-const uploadedSize = ref(0);
-const totalSize = ref(0);
-const uploadStartTime = ref(null);
-const estimatedTimeRemaining = ref(0);
-const uploadCancelSource = ref(null);
-
-// ============================================
-// COMPUTED
-// ============================================
-
-// Computed property untuk filter tags berdasarkan selectedGroupTag (PDF only)
+// Computed property untuk filter tags berdasarkan selectedGroupTag
 const filteredTags = computed(() => {
   if (selectedGroupTag.value.length === 0) {
     return [];
@@ -122,41 +47,80 @@ const filteredTags = computed(() => {
   );
 });
 
-// Determine modal title berdasarkan mode & action
-const modalTitle = computed(() => {
-  if (props.mode === 'excel') {
-    return 'Upload File Excel';
-  }
-  
-  if (props.action === 'edit' || props.type === 'editDocument') {
-    return 'Edit Document';
-  }
-  
-  return 'Upload Document';
-});
-
-// ============================================
-// WATCHERS
-// ============================================
-
-// Watch untuk membersihkan selectedTag ketika selectedGroupTag berubah (PDF only)
+// Watch untuk membersihkan selectedTag ketika selectedGroupTag berubah
 watch(selectedGroupTag, () => {
+
   if (selectedGroupTag.value.length === 0) {
+    // Jika tidak ada group tags yang dipilih, clear selectedTag
     selectedTag.value = [];
   } else {
+    console.log("group tag dipilih", selectedGroupTag.value)
+    // Jika ada group tags yang dipilih, hapus selectedTag yang tidak sesuai
     selectedTag.value = selectedTag.value.filter((tagId) => {
       const tagObj = tag.value.find((t) => t.id === tagId);
       return tagObj && selectedGroupTag.value.includes(tagObj.tag_group_id);
     });
   }
-}, { immediate: true });
+}, {immediate : true});
 
-// Watch untuk load file ketika modal dibuka (PDF edit mode only)
+const nameFileForPlaceholder = ref("");
+const fileById = ref("");
+const listTagInFile = ref([]);
+const isLoading = ref(false);
+const toast = useToast();
+const isDragging = ref(false);
+const fileInput = ref(null);
+const emit = defineEmits(["close", "upload", "completed"]);
+
+// Progress tracking states
+const uploadProgress = ref(0);
+const uploadedSize = ref(0);
+const totalSize = ref(0);
+const uploadStartTime = ref(null);
+const estimatedTimeRemaining = ref(0);
+const uploadCancelSource = ref(null);
+
+const removeTag = (tagId) => {
+  const target =
+    props.type === "UploadDocument"
+      ? selectedTag
+      : props.type === "editDocument"
+        ? listTagInFile
+        : null;
+
+  if (!target) return;
+
+  target.value = target.value.filter((id) => id !== tagId);
+};
+
+const clearAllTags = () => {
+  selectedTag.value = [];
+  listTagInFile.value = [];
+};
+
+const clearAllGroupTags = () => {
+  selectedGroupTag.value = [];
+  selectedTag.value = [];
+  listTagInFile.value = [];
+};
+
+// Clear/cancel selected file
+const clearFile = () => {
+  formData.value.file = null;
+  formData.value.filename = "";
+  if (fileInput.value) {
+    fileInput.value.value = "";
+  }
+};
+
+const formData = ref({
+  filename: "",
+  tag_ids: "",
+  file: null,
+});
+
 watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
   if (isOpen !== true || !id) return;
-
-  // Hanya untuk PDF edit mode
-  if (props.mode !== 'pdf') return;
 
   try {
     useAuth.setLoading(true);
@@ -175,59 +139,57 @@ watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
   }
 });
 
-// ============================================
-// LIFECYCLE
-// ============================================
-
 onMounted(async () => {
   try {
     tag.value = await getTags();
-    groupTag.value = await getTagGroups();
+    groupTag.value = await getTagGroups()
+
   } catch (error) {
     toast.add({
       severity: "error",
       summary: "Error",
-      detail: error.message || "Gagal memuat data",
+      detail: error.message || "Gagal memuat dokumen",
       life: 3000,
     });
   }
 });
 
-// ============================================
-// PDF-SPECIFIC METHODS
-// ============================================
-
-const removeTag = (tagId) => {
-  const target = selectedTag;
-  target.value = target.value.filter((id) => id !== tagId);
+const onDragOver = (event) => {
+  event.preventDefault(); // WAJIB agar drop bisa jalan
+  isDragging.value = true;
 };
 
-const clearAllTags = () => {
-  selectedTag.value = [];
-  listTagInFile.value = [];
+const onDragLeave = (event) => {
+  if (event.currentTarget.contains(event.relatedTarget)) return;
+  isDragging.value = false;
 };
 
-const clearAllGroupTags = () => {
-  selectedGroupTag.value = [];
-  selectedTag.value = [];
-  listTagInFile.value = [];
+const onDrop = (event) => {
+  event.preventDefault();
+  isDragging.value = false;
+
+  const files = Array.from(event.dataTransfer.files);
+  if (!files.length) return;
+
+  if(files && files[0]){
+    formData.value.file = files[0]; // ambil file perta ma
+    formData.value.filename = "";
+    // Reset input value
+    event.target.value = null;
+  }
+
 };
 
-// ============================================
-// FILE HANDLING
-// ============================================
-
-const clearFile = () => {
-  formData.value.file = null;
-  formData.value.filename = "";
-  if (fileInput.value) {
-    fileInput.value.value = "";
+// Handle file selection
+const handleFileChange = (event) => {
+  const files = event.target.files;
+  if (files && files[0]) {
+    formData.value.file = files[0];
+    formData.value.filename = "";
+    // Reset input value so user can select the same file again if needed
+    event.target.value = "";
   }
 };
-
-// ============================================
-// UPDATE DOCUMENT (PDF edit mode only)
-// ============================================
 
 const handleUpdate = async () => {
   try {
@@ -274,23 +236,40 @@ const handleUpdate = async () => {
   }
 };
 
-// ============================================
-// UPLOAD HANDLING
-// ============================================
-
-const handleUpload = () => {
-  // Validation
-  const validation = validateFile(formData.value.file);
-  if (!validation.isValid) {
+const getDocumentById = async (id) => {
+  try {
+    const res = await getFilesById(id);
+    nameFileForPlaceholder.value = res.filename;
+  } catch (error) {
     toast.add({
       severity: "error",
-      summary: "Validasi Error",
-      detail: validation.error,
+      summary: "Error",
+      detail: error.message || "Gagal memuat dokumen",
+      life: 3000,
+    });
+  }
+};
+
+const handleUpload = () => {
+  if (!formData.value.file) {
+    toast.add({
+      severity: "warn",
+      summary: "Peringatan",
+      detail: "Silakan pilih file terlebih dahulu",
+      life: 3000,
+    });
+    return; // ⬅️ PENTING: hentikan function
+  }
+
+  if (formData.value.file.size > 100 * 1024 * 1024) {
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: "file maksimal 100 MB",
       life: 3000,
     });
     return;
   }
-
   isLoading.value = true;
   uploadToServer();
 };
@@ -300,29 +279,16 @@ const uploadToServer = async () => {
     const dataFile = new FormData();
     dataFile.append("file", formData.value.file);
     dataFile.append("filename", formData.value.filename);
+    dataFile.append("tag_ids", JSON.stringify(selectedTag.value || []));
 
-    // Mode-specific append
-    if (props.mode === 'pdf') {
-      dataFile.append("tag_ids", JSON.stringify(selectedTag.value || []));
-      dataFile.append("is_index", formData.value.is_index);
-    }
-
-    // Initialize cancel token
+    // Initialize cancel token for this upload
     uploadCancelSource.value = axios.CancelToken.source();
 
     // Initialize progress tracking
     uploadStartTime.value = Date.now();
     totalSize.value = formData.value.file.size;
 
-    // Choose upload service based on mode
-    let uploadService;
-    if (props.mode === 'excel') {
-      uploadService = uploadExcelFile;
-    } else {
-      uploadService = uploadFileAxios;
-    }
-
-    const res = await uploadService(dataFile, (progressEvent) => {
+    const res = await uploadFileAxios(dataFile, (progressEvent) => {
       uploadProgress.value = progressEvent.percent;
       uploadedSize.value = progressEvent.loaded;
       estimatedTimeRemaining.value = calculateTimeRemaining(
@@ -334,16 +300,18 @@ const uploadToServer = async () => {
     toast.add({
       severity: "success",
       summary: "Success",
-      detail: `File ${props.mode.toUpperCase()} berhasil diupload`,
+      detail: "File berhasil diupload",
       life: 3000,
     });
 
     isLoading.value = false;
     
-    // Reset
+    // Reset file input element dan formData secara langsung
     if (fileInput.value) {
       fileInput.value.value = "";
     }
+    
+    // Reset formData.file agar UI tidak menampilkan file lagi
     formData.value.file = null;
     formData.value.filename = "";
     
@@ -352,7 +320,9 @@ const uploadToServer = async () => {
       closeModal();
     }, 2000);
   } catch (err) {
+    // Don't show toast if upload was cancelled (already shown in handleCancelUpload)
     if (err.message !== "Upload dibatalkan") {
+      console.log(err.message)
       toast.add({
         severity: "error",
         summary: "Error",
@@ -360,16 +330,22 @@ const uploadToServer = async () => {
         life: 3000,
       });
     }
-  } finally {
+  } finally{
     isLoading.value = false;
     uploadCancelSource.value = null;
   }
 };
 
-// ============================================
-// PROGRESS TRACKING
-// ============================================
+// Format bytes to readable format (KB, MB, GB)
+const formatBytes = (bytes) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+};
 
+// Format seconds to human-readable time
 const formatTimeRemaining = (seconds) => {
   if (seconds <= 0) return "Calculating...";
   
@@ -386,11 +362,12 @@ const formatTimeRemaining = (seconds) => {
   }
 };
 
+// Calculate estimated time remaining
 const calculateTimeRemaining = (loaded, total) => {
   if (!uploadStartTime.value) return 0;
   
-  const elapsedTime = (Date.now() - uploadStartTime.value) / 1000;
-  const uploadSpeed = loaded / elapsedTime;
+  const elapsedTime = (Date.now() - uploadStartTime.value) / 1000; // in seconds
+  const uploadSpeed = loaded / elapsedTime; // bytes per second
   
   if (uploadSpeed === 0) return 0;
   
@@ -400,10 +377,7 @@ const calculateTimeRemaining = (loaded, total) => {
   return remainingTime;
 };
 
-// ============================================
-// UPLOAD CANCEL
-// ============================================
-
+// Handle cancel upload
 const handleCancelUpload = () => {
   if (uploadCancelSource.value) {
     uploadCancelSource.value.cancel("Upload dibatalkan oleh user");
@@ -415,6 +389,7 @@ const handleCancelUpload = () => {
     uploadStartTime.value = null;
     estimatedTimeRemaining.value = 0;
     
+    // Reset file ketika upload dibatalkan
     if (fileInput.value) {
       fileInput.value.value = "";
     }
@@ -424,24 +399,21 @@ const handleCancelUpload = () => {
     toast.add({
       severity: "info",
       summary: "Info",
-      detail: "Upload dibatalkan",
+      detail: "Upload dibatalkan cui",
       life: 3000,
     });
   }
 };
 
-// ============================================
-// MODAL CONTROL
-// ============================================
-
+// Reset and close modal
 const closeModal = () => {
-  // Auto-cancel upload jika ada ongoing upload
+  // Auto-cancel upload if there's an ongoing upload
   if (uploadCancelSource.value && uploadProgress.value > 0) {
     handleCancelUpload();
     return;
   }
 
-  // Reset
+  // Reset file input element
   if (fileInput.value) {
     fileInput.value.value = "";
   }
@@ -459,69 +431,11 @@ const closeModal = () => {
   uploadStartTime.value = null;
   estimatedTimeRemaining.value = 0;
   uploadCancelSource.value = null;
-  
   emit("close");
-};
-
-
-// ============================================
-// DOWNLOAD TEMPLATE EXCEL (DASHBOARD SERTIFIKASI)
-// ============================================
-
-
-const handleDownloadTemplate = async () => {
-  try {
-    showDownloadProgress.value = true;
-    downloadProgress.value = 0;
-    downloadedSize.value = 0;
-    downloadStartTime.value = Date.now();
-    
-    const blob = await downloadExcelFile((progressEvent) => {
-      const total = progressEvent.total || 1;
-      const loaded = progressEvent.loaded || 0;
-      
-      downloadFileSize.value = total;
-      downloadedSize.value = loaded;
-      downloadProgress.value = Math.round((loaded / total) * 100);
-    });
-    
-    // Create temporary URL for blob
-    const url = window.URL.createObjectURL(blob);
-    
-    // Create anchor element and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = downloadFileName.value;
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    // Set progress to 100% briefly before hiding
-    downloadProgress.value = 100;
-    setTimeout(() => {
-      showDownloadProgress.value = false;
-    }, 1000);
-  } catch (error) {
-    console.error('Download template gagal:', error);
-    showDownloadProgress.value = false;
-    alert('Gagal download template: ' + error.message);
-  }
 };
 </script>
 
 <template>
-    <DownloadProgressBar
-    v-if="showDownloadProgress"
-    :fileName="downloadFileName"
-    :progress="downloadProgress"
-    :fileSize="downloadFileSize"
-    :downloadedSize="downloadedSize"
-    :startTime="downloadStartTime"
-    @cancel-request="handleCancelDownload"
-  />
   <!-- Modal Backdrop -->
   <div
     v-if="props.isOpen"
@@ -532,157 +446,453 @@ const handleDownloadTemplate = async () => {
 
   <!-- Modal -->
   <div
-    v-if="props.isOpen"
+    v-if="props.isOpen "
     class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg overflow-y-auto max-h-[90vh]"
   >
     <Toast />
-    
     <!-- Modal Header -->
     <div class="flex items-center justify-between p-6 border-b border-gray-200">
       <h2 class="text-xl font-bold text-gray-900">
-        {{ modalTitle }}
+        {{
+          props.type === "UploadDocument" ? "Upload Document" : "Edit Document"
+        }}
       </h2>
       <button
         @click="closeModal"
         class="text-gray-400 hover:text-gray-600 transition-colors"
       >
-        <XCircleIcon class="size-7 text-red-500 cursor-pointer"></XCircleIcon>
+        <XCircleIcon
+          class="size-7 text-red-500 cursor-pointer"
+        ></XCircleIcon>
       </button>
     </div>
 
-    <!-- Modal Body -->
-    <div class="p-6 space-y-4">
-      <!-- PDF Upload Section -->
-      <PDFUploadSection
-        v-if="props.mode === 'pdf' && uploadProgress === 0"
-        v-model="formData"
-        :selectedTags="selectedTag"
-        :selectedGroupTags="selectedGroupTag"
-        :filteredTags="filteredTags"
-        :groupTags="groupTag"
-        :tags="tag"
-        :listTagInFile="listTagInFile"
-        :isDragging="isDragging"
-      />
+    <!-- Modal Upload Document Body -->
+    <div class="p-6 space-y-4" v-if="props.type === 'UploadDocument' && uploadProgress === 0">
+      <!-- File Input -->
+      <div>
+        <label
+          class="block text-sm font-semibold text-gray-700 mb-2"
+          for="uploadFile"
+        >
+          Pilih File
+        </label>
+        <div
+          class="border-dashed border rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition-colors"
+          :class="{
+            'border-blue-500': isDragging,
+            'border-red-500': !isDragging,
+          }"
+          @dragover.prevent="onDragOver"
+          @dragleave.prevent="onDragLeave"
+          @drop.prevent="onDrop"
+          @click.stop="fileInput.click()"
+        >
+          <input
+            ref="fileInput"
+            type="file"
+            @change="handleFileChange"
+            class="hidden"
+            aria-label="Upload file"
+            id="uploadFile"
+          />
+          <div class="pointer-events-none">
+            <p class="text-gray-600 text-sm font-semibold">
+              {{
+                formData.file
+                  ? formData.file.name
+                  : "Drag atau click upilih file"
+              }}
+            </p>
+            <p class="text-gray-400 text-xs mt-1">
+              {{
+                formData.file
+                  ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB`
+                  : "Max size 100MB & format PDF"
+              }}
+            </p>
+          </div>
+          
+          <!-- Close button untuk membatalkan file -->
+          <button
+            v-if="formData.file"
+            @click.stop="clearFile"
+            class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+            type="button"
+            title="Batalkan file"
+          >
+            <XCircleIcon class="size-4" />
+            Batalkan File
+          </button>
+        </div>
+      </div>
 
-      <!-- Excel Upload Section -->
-      <ExcelUploadSection
-        v-if="props.mode === 'excel' && uploadProgress === 0"
-        v-model="formData"
-        :isDragging="isDragging"
-      />
-
-      <!-- PDF Edit Section -->
-      <div v-if="props.mode === 'pdf' && (props.action === 'edit' || props.type === 'editDocument')">
-        <div>
+      <div>
+        <span class="flex gap-x-2 ">  
           <label class="block text-sm font-semibold text-gray-700 mb-2">
             Nama File
           </label>
-          <input
-            v-model="formData.filename"
-            type="text"
-            :placeholder="`Nama saat ini: ${nameFileForPlaceholder}`"
-            class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- Tags Section untuk Edit -->
-        <div>
-          <div class="mb-4">
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
-              Tags File Saat Inia
-            </label>
-            <div
-              v-if="listTagInFile && listTagInFile.length > 0"
-              class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
-            >
-              <div
-                v-for="listTag in listTagInFile"
-                :key="listTag.id || listTag"
-                class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"
-              >
-                {{ typeof listTag === 'object' ? listTag.name : listTag }}
-              </div>
-            </div>
-            <p v-else class="text-xs text-gray-500">Tidak ada tag pada file ini</p>
-          </div>
-        </div>
+          <p class="text-xs font-semibold text-gray-500 mt-0.5">(opsional)</p>
+        </span>
+        <input
+          v-model="formData.filename"
+          type="text"
+          placeholder="Masukkan nama file (tanpa extension)"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          Format: PDF akan ditambahkan otomatis
+        </p>
       </div>
 
-      <!-- Progress Bar (appears during upload) -->
-      <div v-if="uploadProgress > 0" class="space-y-3">
-        <div class="bg-gray-100 rounded-lg p-4">
-          <div class="flex justify-between mb-2">
-            <span class="text-sm font-medium text-gray-700">Upload Progress</span>
-            <span class="text-sm font-medium text-gray-700">{{ uploadProgress }}%</span>
-          </div>
-          <div class="w-full bg-gray-300 rounded-full h-2">
+      <!-- Group Tags -->
+      <div>
+        <!-- Selected group tags display -->
+        <div v-if="selectedGroupTag.length > 0" class="mb-3 ">
+          <div class="flex flex-wrap gap-2">
             <div
-              class="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              :style="{ width: uploadProgress + '%' }"
-            ></div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-2 mt-3 text-xs text-gray-600">
-            <div>
-              <p class="font-semibold">{{ formatBytes(uploadedSize) }} / {{ formatBytes(totalSize) }}</p>
+              v-for="selected in selectedGroupTag"
+              :key="selected"
+              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2 "
+            >
+              {{ groupTag.find((t) => t.id === selected)?.name || selected }}
+              <button
+                @click="removeTag(selected)"
+                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-blue-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
             </div>
-            <div class="text-right">
-              <p v-if="estimatedTimeRemaining > 0" class="font-semibold">
-                {{ formatTimeRemaining(estimatedTimeRemaining) }} remaining
-              </p>
-            </div>
+            <button
+              @click="clearAllGroupTags"
+              class="ml-auto text-xs cursor-pointer text-red-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
           </div>
         </div>
+
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Pilih Group Tags
+        </label>
+        <CustomMultiSelect
+          v-model="selectedGroupTag"
+          :options="groupTag"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags untuk file ini..."
+          :multiple="true"
+          :hideSelectedItems="true"
+        />
+
+        <!-- section Tag -->
+        <div v-if="selectedTag.length > 0" class="flex flex-wrap gap-2 mt-4 ">
+            <div
+              v-for="selected in selectedTag"
+              :key="selected"
+              class="px-3 py-1.5 bg-blue-100 border border-blue-300 text-blue-800 rounded-full text-sm font-medium flex items-center gap-2"
+            >
+              {{ tag.find((t) => t.id === selected)?.name || selected }}
+              <button
+                @click="removeTag(selected)"
+                class="hover:bg-blue-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-blue-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              
+            </div>
+             <button
+              @click="clearAllTags"
+              class="ml-auto text-xs cursor-pointer text-red-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
+          </div>
+
+        <!-- Select Tags berdasarkan GroupTags yang dipilih -->
+        <label class="block text-sm font-semibold text-gray-700 mb-2 mt-2">
+          Pilih Tags
+        </label>
+        <CustomMultiSelect
+          v-model="selectedTag"
+          :options="filteredTags"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags untuk file ini..."
+          :multiple="true"
+          :hideSelectedItems="true"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          {{ selectedTag.length }} tag dipilih
+        </p>
       </div>
     </div>
 
-    <!-- Modal Footer / Actions -->
-    <div class="flex items-center justify-between gap-2 p-6 border-t border-gray-200 bg-gray-50">
-      <button
-        @click="closeModal"
-        :disabled="isLoading"
-        class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium text-sm disabled:opacity-50"
-      >
-        Batal
-      </button>
+    <!-- Modal Edit Document Body -->
+    <div class="p-6 space-y-4" v-if="props.type === 'editDocument'">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Nama File
+        </label>
+        <input
+          v-model="formData.filename"
+          type="text"
+          :placeholder="`Nama saat ini: ${nameFileForPlaceholder}`"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
 
-      <div class="flex gap-2">
-        <button
-          v-if="uploadProgress > 0"
-          @click="handleCancelUpload"
-          class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium text-sm rounded-lg transition-colors"
+      <!-- Tags Section -->
+      <div>
+        <!-- Tags Sebelumnya -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Tags File Saat Ini
+          </label>
+          <div
+            v-if="listTagInFile && listTagInFile.length > 0"
+            class="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            <div
+              v-for="listTag in listTagInFile"
+              :key="listTag"
+              class="px-3 py-1.5 bg-green-100  text-green-800 rounded-full text-sm font-medium flex items-center gap-2"
+            >
+              {{ tag.find((t) => t.id === listTag)?.name || listTag.name }}
+              <button
+                @click="removeTag(listTag)"
+                class="hover:bg-green-300 cursor-pointer rounded-full p-0.5 transition-colors"
+                type="button"
+                title="Hapus tag"
+              >
+                <svg
+                  class="size-4 text-green-800"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              @click="clearAllTags"
+              class="ml-auto text-xs cursor-pointer text-gray-500 hover:text-gray-700 underline transition-colors"
+              type="button"
+            >
+              Hapus Semua
+            </button>
+          </div>
+          <div
+            v-else
+            class="text-sm text-gray-500 p-3 bg-gray-50 rounded-lg border border-gray-200"
+          >
+            File ini belum memiliki tags
+          </div>
+        </div>
+
+        <!-- Section untuk Tambah Tags Baru -->
+        <label class="block text-sm font-semibold text-gray-700 mb-2">
+          Tambahkan Tags Baru
+        </label>
+        <CustomMultiSelect
+          @change="listTagInFile"
+          v-model="listTagInFile"
+          :options="tag"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Pilih tags tambahan..."
+          :multiple="true"
+          :hideSelectedItems="true"
+        />
+      </div>
+    </div>
+
+
+    <!-- Modal untuk sertifikasi -->
+    <div class="p-6 space-y-4" v-if="props.type === 'ModalSertifikasi' && uploadProgress === 0">
+      <!-- File Input -->
+      <div>
+        <label
+          class="block text-sm font-semibold text-gray-700 mb-2"
+          for="uploadFile"
         >
-          Batalkan Upload
+          Pilih File
+        </label>
+        <div
+          class="border-dashed border rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition-colors"
+          :class="{
+            'border-blue-500': isDragging,
+            'border-red-500': !isDragging,
+          }"
+          @dragover.prevent="onDragOver"
+          @dragleave.prevent="onDragLeave"
+          @drop.prevent="onDrop"
+          @click.stop="fileInput.click()"
+        >
+          <input
+            ref="fileInput"
+            type="file"
+            @change="handleFileChange"
+            class="hidden"
+            aria-label="Upload file"
+            id="uploadFile"
+          />
+          <div class="pointer-events-none">
+            <p class="text-gray-600 text-sm font-semibold">
+              {{
+                formData.file
+                  ? formData.file.name
+                  : "Drag atau click upilih file"
+              }}
+            </p>
+            
+            <p class="text-gray-400 text-xs mt-1">
+  {{
+    formData.file
+      ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB`
+      : props.type === "UploadDocument"
+        ? "Max size 100MB & format PDF"
+        : "Max size 100MB & format Excel"
+  }}
+</p>
+
+          </div>
+          
+          <!-- Close button untuk membatalkan file -->
+          <button
+            v-if="formData.file"
+            @click.stop="clearFile"
+            class="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200"
+            type="button"
+            title="Batalkan file"
+          >
+            <XCircleIcon class="size-4" />
+            Batalkan File
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <span class="flex gap-x-2 ">  
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Nama File
+          </label>
+          <p class="text-xs font-semibold text-gray-500 mt-0.5">(opsional)</p>
+        </span>
+        <input
+          v-model="formData.filename"
+          type="text"
+          placeholder="Masukkan nama file (tanpa extension)"
+          class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+        <p class="text-xs text-gray-500 mt-1">
+          Format: Excel akan ditambahkan otomatis
+        </p>
+      </div>
+
+    </div>
+
+
+    <!-- Modal Footer -->
+    <div class="flex flex-col gap-3 p-6 border-t border-gray-200">
+      <!-- Progress Section (visible during upload) -->
+      <div v-if="isLoading && uploadProgress > 0" class="space-y-2 overflow-hidden">
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+          <div
+            class="bg-blue-600 h-full transition-all duration-300 ease-out"
+            :style="{ width: uploadProgress + '%' }"
+          ></div>
+        </div>
+
+        <!-- Progress Stats -->
+        <div class="grid grid-cols-3 gap-2 text-xs text-gray-600">
+          <div class="text-center">
+            <p class="font-semibold text-lg text-gray-900">{{ uploadProgress }}%</p>
+            <p>Progress</p>
+          </div>
+          <div class="text-center">
+            <p class="font-semibold text-gray-900">
+              {{ formatBytes(uploadedSize) }}/{{ formatBytes(totalSize) }}
+            </p>
+            <p>Uploaded</p>
+          </div>
+          <div class="text-center">
+            <p class="font-semibold text-gray-900">
+              {{ formatTimeRemaining(estimatedTimeRemaining) }}
+            </p>
+            <p>Remaining</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-3 justify-end">
+        <!-- Dynamic Cancel/Close Button --->
+        <button
+          @click="uploadProgress > 0 ? handleCancelUpload() : closeModal()"
+          :class="{
+            'text-red-700 border-red-300 hover:bg-red-50': uploadProgress > 0,
+            'text-gray-700 border-gray-300 hover:bg-gray-50': uploadProgress === 0,
+          }"
+          class="px-4 py-2 border rounded-lg transition-colors font-medium"
+        >
+          {{ uploadProgress > 0 ? "Batalkan Upload" : "Batal" }}
         </button>
 
-        <!-- Edit Button (PDF edit mode only) -->
+        <!-- Upload/Save Button -->
         <button
-          v-if="props.mode === 'pdf' && (props.action === 'edit' || props.type === 'editDocument') && uploadProgress === 0"
-          @click="handleUpdate"
-          :disabled="isLoading"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
+          @click="props.type === 'editDocument' ? handleUpdate() : handleUpload()"
+          :disabled="isLoading && uploadProgress > 0"
+          class="px-4 py-2 flex gap-x-2 items-center bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium cursor-pointer"
         >
-          {{ isLoading ? "Loading..." : "Update" }}
-        </button>
-        
-        <!-- Download Template Excel Button (create mode only) -->
-        <button
-          v-if="(props.action === 'create' || (props.mode === 'excel' || props.type === 'ModalSertifikasi')) && uploadProgress === 0"
-          @click="handleDownloadTemplate"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-        >
-          {{ isLoading ? "Loading..." : "Download Template" }}
-        </button>
-
-        <!-- Upload Button (create mode only) -->
-        <button
-          v-if="(props.action === 'create' || (props.type === 'UploadDocument' || props.type === 'ModalSertifikasi')) && uploadProgress === 0"
-          @click="handleUpload"
-          :disabled="isLoading || !formData.file"
-          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
-        >
-          {{ isLoading ? "Loading..." : "Upload" }}
+          <ProgressSpinner
+            v-if="isLoading && uploadProgress === 0"
+            style="width: 25px; height: 25px"
+            strokeWidth="8"
+            fill="transparent"
+            aria-label="Custom ProgressSpinner"
+          />
+          <div v-else class="flex gap-x-2 items-center">
+            <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
+            <p>{{ props.type === "editDocument" ? "Simpan" : "upload" }}</p>
+          </div>
         </button>
       </div>
     </div>
@@ -690,5 +900,28 @@ const handleDownloadTemplate = async () => {
 </template>
 
 <style scoped>
-/* No additional styles needed */
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.8);
+}
+
+/* Firefox scrollbar */
+html {
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  scrollbar-width: thin;
+}
 </style>

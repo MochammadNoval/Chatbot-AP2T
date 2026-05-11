@@ -149,6 +149,7 @@ export async function getTags() {
   try {
     const response = await api.get("/tags");
 
+    console.log(response)
     // Validasi response
     if (!response.data) {
       throw new Error("Response dari server tidak valid");

@@ -1,15 +1,6 @@
 <template>
 <div class="p-4">
-  <!-- Download Progress Bar -->
-  <DownloadProgressBar
-    v-if="showDownloadProgress"
-    :fileName="downloadFileName"
-    :progress="downloadProgress"
-    :fileSize="downloadFileSize"
-    :downloadedSize="downloadedSize"
-    :startTime="downloadStartTime"
-    @cancel-request="handleCancelDownload"
-  />
+
 
   <!-- Document Modal -->
   <DocumentModal
@@ -21,6 +12,25 @@
     :idDocument="idDocument"
   />
 
+  <!-- Excel Upload Modal -->
+  <ExcelUploadModal
+    :isOpen="showExcelUploadModal"
+    title="Upload Data Dashboard Training"
+    @close="showExcelUploadModal = false"
+    @upload-success="handleExcelUploadSuccess"
+    @completed="handleExcelUploadCompleted"
+  />
+
+  <!-- Excel Download Modal -->
+  <ExcelDownloadModal
+    :isOpen="showExcelDownloadModal"
+    :fileName="downloadFileName"
+    @close="showExcelDownloadModal = false"
+    @download-start="handleDownloadStart"
+    @download-success="handleDownloadSuccess"
+    @download-error="handleDownloadError"
+  />
+
   <header class="flex justify-between mb-4 ">
     <section>
       <h1 class="text-black font-bold">Dashboard Training</h1>
@@ -29,14 +39,25 @@
       </p>
     </section>
 
-      <button 
-        v-if = "can('admin : view')"
-        @click="openUpdateModal"
-        class="flex bg-blue-500 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
-      >
-          <PlusCircleIcon class="size-4 text-white"></PlusCircleIcon>
-          <p class="text-xs font-semibold">Update Dashboard</p> 
-      </button>
+      <div class="flex gap-3">
+
+        <button 
+          v-if = "can('admin : view')"
+          @click="showExcelUploadModal = true"
+          class="flex bg-green-600 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-green-700 transition-colors cursor-pointer"
+        >
+            <PlusCircleIcon class="size-4 text-white"></PlusCircleIcon>
+            <p class="text-xs font-semibold">Upload Data</p> 
+        </button>
+        <!-- <button 
+          v-if = "can('admin : view')"
+          @click="openUpdateModal"
+          class="flex bg-blue-500 gap-x-2 px-3 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
+        >
+            <PlusCircleIcon class="size-4 text-white"></PlusCircleIcon>
+            <p class="text-xs font-semibold">Update Dashboard</p> 
+        </button> -->
+      </div>
   </header>
   
     <div class="w-full">
@@ -71,9 +92,9 @@
 <script setup>
 import { ref } from "vue";
 import DocumentModal from "../components/DocumentModal.vue";
-import DownloadProgressBar from "../components/DownloadProgressBar.vue";
+import ExcelUploadModal from "../components/ExcelUploadModal.vue";
+import ExcelDownloadModal from "../components/ExcelDownloadModal.vue";
 import { PlusCircleIcon, ArrowDownOnSquareIcon } from "@heroicons/vue/24/outline";
-import { downloadExcelFile } from "../services/ExcelServices";
 
 // PERMISSION ///
 import {usePermission} from "../composables/usePermissions"
@@ -86,15 +107,9 @@ const tableauUrl =
 const showModal = ref(false);
 const modalType = ref("");
 const idDocument = ref(0);
-
-// Download progress state
-const showDownloadProgress = ref(false);
-const downloadProgress = ref(0);
-const downloadFileSize = ref(0);
-const downloadedSize = ref(0);
-const downloadStartTime = ref(0);
+const showExcelUploadModal = ref(false);
+const showExcelDownloadModal = ref(false);
 const downloadFileName = ref('template-dashboard-sertifikasi.xlsx');
-let cancelTokenSource = null;
 
 import { onMounted } from "vue";
 
@@ -109,56 +124,34 @@ const openUpdateModal = () => {
   showModal.value = true;
 };
 
-const handleDownloadTemplate = async () => {
-  try {
-    showDownloadProgress.value = true;
-    downloadProgress.value = 0;
-    downloadedSize.value = 0;
-    downloadStartTime.value = Date.now();
-    
-    const blob = await downloadExcelFile((progressEvent) => {
-      const total = progressEvent.total || 1;
-      const loaded = progressEvent.loaded || 0;
-      
-      downloadFileSize.value = total;
-      downloadedSize.value = loaded;
-      downloadProgress.value = Math.round((loaded / total) * 100);
-    });
-    
-    // Create temporary URL for blob
-    const url = window.URL.createObjectURL(blob);
-    
-    // Create anchor element and trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = downloadFileName.value;
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    // Set progress to 100% briefly before hiding
-    downloadProgress.value = 100;
-    setTimeout(() => {
-      showDownloadProgress.value = false;
-    }, 1000);
-  } catch (error) {
-    console.error('Download template gagal:', error);
-    showDownloadProgress.value = false;
-    alert('Gagal download template: ' + error.message);
-  }
+// Handlers untuk download modal
+const handleDownloadStart = () => {
+  console.log('Download dimulai...');
 };
 
-const handleCancelDownload = () => {
-  // Cancel request logic here if needed
-  showDownloadProgress.value = false;
+const handleDownloadSuccess = () => {
+  console.log('Download berhasil!');
+};
+
+const handleDownloadError = (error) => {
+  console.error('Download error:', error);
 };
 
 // Handler ketika modal selesai (upload/edit berhasil)
 const handleModalCompleted = () => {
   showModal.value = false;
+  // Tambahkan logika refresh atau update dashboard di sini jika diperlukan
+};
+
+// Handler untuk Excel upload success
+const handleExcelUploadSuccess = (response) => {
+  console.log('Excel upload berhasil:', response);
+  // Tambahkan logika refresh dashboard atau update UI di sini
+};
+
+// Handler ketika Excel upload modal selesai
+const handleExcelUploadCompleted = () => {
+  showExcelUploadModal.value = false;
   // Tambahkan logika refresh atau update dashboard di sini jika diperlukan
 };
 
