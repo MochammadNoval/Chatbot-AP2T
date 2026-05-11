@@ -333,13 +333,9 @@ export async function shareDocumentLink(fileId, payload) {
       throw new Error("File ID diperlukan");
     }
 
-    if (!payload.expired_at) {
-      throw new Error("Tanggal kedaluwarsa diperlukan");
-    }
-
     const response = await api.post(`/files/${fileId}/share`, {
       password: payload.password,
-      expired_at: payload.expired_at,
+      expires_at: payload.expires_at || null,
     });
 
     return response.data;
@@ -407,6 +403,60 @@ export async function getShareLink(fileId) {
     return response.data;
   } catch (error) {
     let fileMessage = "Gagal mengambil share link, silahkan coba lagi";
+
+    if (error.response) {
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else if (error.message) {
+      fileMessage = error.message;
+    } else {
+      fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
+    }
+
+    throw new Error(fileMessage);
+  }
+}
+
+/**
+ * Update share link untuk dokumen
+ * @param {number} fileId - ID file yang share link-nya akan diupdate
+ * @param {Object} payload - Object berisi data yang akan diupdate
+ * @param {string} payload.password - Password untuk share link (optional)
+ * @param {string} payload.expires_at - Tanggal kedaluwarsa format ISO 8601 (optional)
+ * @param {boolean} payload.is_active - Status aktif share link (optional)
+ * @returns {Promise<Object>} Response dari backend
+ */
+export async function updateShareLink(fileId, payload = {}) {
+  try {
+    if (!fileId) {
+      throw new Error("File ID diperlukan");
+    }
+
+    if (!payload || Object.keys(payload).length === 0) {
+      throw new Error("Minimal satu parameter harus disediakan");
+    }
+
+    // Buat object untuk dikirim, hanya kirim field yang disediakan
+    const updateData = {};
+    
+    if (payload.hasOwnProperty('password')) {
+      updateData.password = payload.password;
+    }
+    
+    if (payload.hasOwnProperty('expires_at')) {
+      updateData.expires_at = payload.expires_at;
+    }
+    
+    if (payload.hasOwnProperty('is_active')) {
+      updateData.is_active = payload.is_active;
+    }
+
+    const response = await api.put(`/files/${fileId}/share`, updateData);
+
+    return response.data;
+  } catch (error) {
+    let fileMessage = "Gagal mengupdate share link, silahkan coba lagi";
 
     if (error.response) {
       fileMessage = extractErrorMessage(error, fileMessage);

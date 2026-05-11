@@ -20,16 +20,7 @@
         Dokumen: <span class="font-semibold">{{ documentName }}</span>
       </p>
 
-        <!-- Share Link Delete Button -->
-        <button
-          @click="handleDelete"
-          class="px-4 py-2 mt-2 text-white rounded-lg transition-colors flex items-center gap-2 mb-2"
-          :class="shareUrl ? 'bg-red-600 hover:bg-red-700 cursor-pointer' : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
-          :disabled="!shareUrl || isLoadingDelete || isUrlCopying"
-        >
-          <TrashIcon class="size-4" />
-          {{ isLoadingDelete ? 'Menghapus...' : 'Hapus share Link' }}
-        </button>
+
 
       <!-- Form -->
       <div class="space-y-4 mb-6">
@@ -51,7 +42,8 @@
         <!-- Expired At Field -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            Kedaluwarsa Pada
+            Kadaluwarsa Pada
+            <span class="text-gray-500 text-xs">(Opsional)</span> 
           </label>
           <input
             v-model="expiredAt"
@@ -64,49 +56,98 @@
       </div>
 
       <!-- Buttons -->
-      <div class="flex gap-2 justify-end">
-        <!-- Close Button -->
+      <div class="flex gap-2 justify-end relative">
+        <!-- Smart Main Button (Dynamic) -->
         <button
-          @click="closeModal"
-          class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-          :disabled="isLoadingSubmit"
+          @click="handleMainAction"
+          :class="[
+            'px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed',
+            buttonConfig.bgColor
+          ]"
+          :disabled="buttonConfig.disabled"
         >
-          Tutup
+          <component 
+            :is="buttonConfig.action === 'copy' && isUrlCopied ? CheckIcon : LinkIcon" 
+            class="size-4" 
+          />
+          {{ buttonConfig.action === 'copy' && isUrlCopied ? 'Tersalin!' : buttonConfig.label }}
         </button>
 
-        <!-- Submit Button -->
+        <!-- Dropdown Toggle Button (Advanced Actions) -->
         <button
-          @click="handleSubmit"
-          v-if="!shareUrl"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="isLoadingSubmit"
-        >
-          {{ isLoadingSubmit ? 'Loading...' : 'Submit' }}
-        </button>
-
-        <!-- Share URL Button (appears after submit) -->
-        <button
-          @click="handleCopyToClipboard"
-          class="px-4 py-2  text-white rounded-lg  transition-colors flex items-center gap-2"
-          :class = "shareUrl ? 'bg-green-600 hover:bg-green-700': 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+          @click="isDropdownOpen = !isDropdownOpen"
           :disabled="!shareUrl"
-          
+          class="px-2 py-2 text-white rounded-r-lg transition-colors border-l"
+          :class="[
+            shareUrl ? 'bg-gray-600 hover:bg-gray-700 border-gray-700 cursor-pointer' : 'bg-gray-400 border-gray-500 cursor-not-allowed'
+          ]"
         >
-          <component :is="isUrlCopied ? CheckIcon : LinkIcon" class="size-4" />
-          {{ isUrlCopied ? 'Tersalin!' : 'Bagikan URL' }}
+          <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
         </button>
 
-       
+        <!-- Dropdown Menu -->
+        <div
+          v-if="isDropdownOpen"
+          class="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg z-10"
+        >
+          <!-- Disable Option (shown when link is active) -->
+          <button
+            v-if="isLinkActive"
+            @click="() => { handleDisablelink(); isDropdownOpen = false; }"
+            :disabled="!shareUrl || isLoadingSubmit"
+            class="w-full text-left px-4 py-3 hover:bg-yellow-50 transition-colors flex items-center gap-2 text-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white rounded-t-lg"
+          >
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17H5V5h14v6m4-3l-5-5m5 5v5m0-5h5m-5 0h-5" />
+            </svg>
+            Disable Link
+          </button>
+
+          <!-- Enable Option (shown when link is disabled) -->
+          <button
+            v-if="!isLinkActive"
+            @click="() => { handleEnablelink(); isDropdownOpen = false; }"
+            :disabled="!shareUrl || isLoadingSubmit"
+            class="w-full text-left px-4 py-3 hover:bg-green-50 transition-colors flex items-center gap-2 text-green-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white rounded-t-lg"
+          >
+            <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Enable Link
+          </button>
+
+          <div class="border-t border-gray-200"></div>
+
+          <!-- Delete Option -->
+          <button
+            @click="() => { handleDelete(); isDropdownOpen = false; }"
+            :disabled="!shareUrl || isLoadingDelete"
+            class="w-full text-left px-4 py-3 hover:bg-red-50 transition-colors flex items-center gap-2 text-red-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white rounded-b-lg"
+          >
+            <TrashIcon class="size-4" />
+            Hapus Link
+          </button>
+        </div>
       </div>
+
+      <!-- Close overlay when clicking outside -->
+      <div
+        v-if="isDropdownOpen"
+        @click="isDropdownOpen = false"
+        class="fixed inset-0 z-0"
+      ></div>
     </div>
   </div>
 </template>
 
 <script setup>
+import Swal from "sweetalert2";
 import { ref, computed, watch } from 'vue';
 import { useToast } from 'primevue/usetoast';
-import { CheckIcon, LinkIcon, TrashIcon, ArrowUpOnSquareStackIcon } from '@heroicons/vue/24/outline';
-import { shareDocumentLink, deleteShareLink, getShareLink } from '../services/FileServices';
+import { CheckIcon, LinkIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { shareDocumentLink, deleteShareLink, getShareLink, updateShareLink } from '../services/FileServices';
 
 
 const props = defineProps({
@@ -136,8 +177,63 @@ const isLoadingSubmit = ref(false);
 const isUrlCopied = ref(false);
 const isUrlCopying = ref(false);
 const isLoadingDelete = ref(false);
+const isLinkActive = ref(true); // Track if link is active/disabled
 
 const SharedLink = ref(null);
+
+// Track original values for change detection
+const originalPassword = ref(null);
+const originalExpiredAt = ref('');
+
+// Dropdown state
+const isDropdownOpen = ref(false);
+
+// Computed: Detect if user has made changes
+const hasChanges = computed(() => {
+  return password.value !== originalPassword.value || 
+         expiredAt.value !== originalExpiredAt.value;
+});
+
+// Computed: Button configuration based on state
+const buttonConfig = computed(() => {
+  if (!shareUrl.value) {
+    return {
+      label: 'Generate Link',
+      icon: '⚡',
+      action: 'generate',
+      disabled: isLoadingSubmit.value,
+      bgColor: 'bg-blue-600 hover:bg-blue-700',
+    };
+  }
+  
+  if (shareUrl.value && !isLinkActive.value) {
+    return {
+      label: 'Link Disabled',
+      icon: '⛔',
+      action: 'disabled',
+      disabled: true,
+      bgColor: 'bg-gray-400 cursor-not-allowed',
+    };
+  }
+  
+  if (shareUrl.value && hasChanges.value) {
+    return {
+      label: 'Update Link',
+      icon: '💾',
+      action: 'update',
+      disabled: isLoadingSubmit.value,
+      bgColor: 'bg-orange-600 hover:bg-orange-700',
+    };
+  }
+  
+  return {
+    label: 'Copy Link',
+    icon: '📋',
+    action: 'copy',
+    disabled: !shareUrl.value || !isLinkActive.value,
+    bgColor: 'bg-green-600 hover:bg-green-700',
+  };
+});
 
 // Computed
 // const isFormValid = computed(() => {
@@ -158,6 +254,17 @@ const loadShareLink = async () => {
       // Generate full URL dengan format yang diminta
       shareUrl.value = `http://localhost:5170/api/files/public/shares/${token}/download/`;
       SharedLink.value = token;
+      
+      // Track original values dari response untuk deteksi perubahan
+      originalPassword.value = response.password || null;
+      originalExpiredAt.value = response.expires_at || '';
+      
+      // Set form values dengan nilai dari response
+      password.value = response.password || null;
+      expiredAt.value = response.expires_at ? new Date(response.expires_at).toISOString().slice(0, 16) : '';
+      
+      // Track link's active status
+      isLinkActive.value = response.is_active !== false;
       
       console.log('Share Link Loaded:', shareUrl.value);
     }
@@ -184,49 +291,77 @@ const closeModal = () => {
 const resetForm = () => {
   password.value = '';
   expiredAt.value = '';
+  originalPassword.value = null;
+  originalExpiredAt.value = '';
   // shareUrl.value = null;
   isUrlCopied.value = false;
+  isDropdownOpen.value = false;
+  isLinkActive.value = true;
 };
 
-const handleSubmit = async () => {
-  // Validasi expiredAt wajib
-  if (!expiredAt.value) {
-    toast.add({
-      severity: 'warn',
-      summary: 'Validasi',
-      detail: 'Tanggal kedaluwarsa diperlukan',
-      life: 3000,
-    });
-    return;
-  }
 
+const handleSubmit = async () => {
+  console.log(`expired at ${expiredAt.value}`);
   try {
     isLoadingSubmit.value = true;
 
-    const response = await shareDocumentLink(props.documentId, {
-      password: password.value || null,
-      expired_at: expiredAt.value,
-    });
-
-    if (response && response.share_token) {
-      // Ambil share_token dari response
-      const token = response.share_token;
-      
-      // Generate full URL dengan format yang diminta
-      shareUrl.value = `/api/files/public/shares/${token}/download/`;
-      SharedLink.value = token;
-      console.log(SharedLink.value)
-      console.log(shareUrl.value)
-      
-      toast.add({
-        severity: 'success',
-        summary: 'Sukses',
-        detail: 'Link sharing berhasil dibuat',
-        life: 3000,
+    // Convert datetime-local to ISO 8601 format jika ada value
+    const isoExpiredAt = expiredAt.value ? new Date(expiredAt.value).toISOString() : null;
+    
+    // Check if creating new link or updating existing
+    if (!shareUrl.value) {
+      // CREATE NEW LINK
+      const response = await shareDocumentLink(props.documentId, {
+        password: password.value || null,
+        expires_at: isoExpiredAt,
       });
-      emit('shared', response);
-    } else {
-      throw new Error('Tidak ada share URL di response');
+
+      if (response && response.share_token) {
+        const token = response.share_token;
+        shareUrl.value = `/api/files/public/shares/${token}/download/`;
+        SharedLink.value = token;
+        
+        // Update original values setelah create
+        originalPassword.value = password.value || null;
+        originalExpiredAt.value = isoExpiredAt || '';
+        
+        toast.add({
+          severity: 'success',
+          summary: 'Sukses',
+          detail: 'Link sharing berhasil dibuat',
+          life: 3000,
+        });
+        emit('shared', response);
+      } else {
+        throw new Error('Tidak ada share URL di response');
+      }
+    } else if (hasChanges.value) {
+      // UPDATE EXISTING LINK
+      const updatePayload = {};
+      
+      // Only send changed fields
+      if (password.value !== originalPassword.value) {
+        updatePayload.password = password.value || null;
+      }
+      if (isoExpiredAt !== originalExpiredAt.value) {
+        updatePayload.expires_at = isoExpiredAt || null;
+      }
+      
+      const response = await updateShareLink(props.documentId, updatePayload);
+      
+      if (response) {
+        // Update original values setelah update
+        originalPassword.value = password.value || null;
+        originalExpiredAt.value = isoExpiredAt || '';
+        
+        toast.add({
+          severity: 'success',
+          summary: 'Sukses',
+          detail: 'Link sharing berhasil diupdate',
+          life: 3000,
+        });
+        emit('shared', response);
+      }
     }
   } catch (error) {
     console.error('Share link error:', error);
@@ -241,11 +376,87 @@ const handleSubmit = async () => {
   }
 };
 
+// Unified handler untuk main button berdasarkan state
+const handleMainAction = async () => {
+  const action = buttonConfig.value.action;
+  
+  if (action === 'generate' || action === 'update') {
+    await handleSubmit();
+  } else if (action === 'copy') {
+    await handleCopyToClipboard();
+  }
+};
+
+const handleDisablelink = async () => {
+  try {
+    console.log(props.documentId)
+    isLoadingSubmit.value = true;
+    
+    const response = await updateShareLink(props.documentId, {
+      is_active: false
+    });
+
+    if(response) {
+      // Update link status
+      isLinkActive.value = false;
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Sukses',
+        detail: 'Link berhasil non aktif kan!',
+        life: 3000,
+      });
+    }
+
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error.message || 'Gagal mengupdate share link',
+      life: 3000,
+    });
+  } finally {
+    isLoadingSubmit.value = false;
+  }
+};
+
+const handleEnablelink = async () => {
+  try {
+    console.log(props.documentId)
+    isLoadingSubmit.value = true;
+    
+    const response = await updateShareLink(props.documentId, {
+      is_active: true
+    });
+
+    if(response) {
+      // Update link status
+      isLinkActive.value = true;
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Sukses',
+        detail: 'Link berhasil diaktifkan!',
+        life: 3000,
+      });
+    }
+
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Error',
+      detail: error.message || 'Gagal mengupdate share link',
+      life: 3000,
+    });
+  } finally {
+    isLoadingSubmit.value = false;
+  }
+};
+
 const handleCopyToClipboard = async () => {
   // console.log('copied')
   //if (!shareUrl.value) return;
   try {
-    console.log('copied')
     isUrlCopying.value = true;
     
     // shareUrl sudah dalam format full URL
@@ -276,23 +487,33 @@ const handleCopyToClipboard = async () => {
   }
 };
 
+
 const handleDelete = async () => {
+  
   try {
-    if (confirm('Apakah Anda yakin ingin menghapus share link ini?')) {
-      isLoadingDelete.value = true;
-      
+     const result = await Swal.fire({
+      title: "Hapus Data?",
+      text: "Apakah anda yakin ingin hapus dokumen?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      cancelButtonText: "Batal",
+      confirmButtonText: "Ya, Hapus!",
+    });
+    isLoadingDelete.value = true;
+    if (result.isConfirmed) {
       await deleteShareLink(props.documentId);
-      
-      toast.add({
-        severity: 'success',
-        summary: 'Sukses',
-        detail: 'Share link berhasil dihapus',
-        life: 3000,
+
+      Swal.fire({
+        title: "Berhasil!",
+        text: "Share link berhasil dihapus!",
+        icon: "success",
       });
-      
       resetForm();
       emit('close');
     }
+
   } catch (error) {
     console.error('Delete share link error:', error);
     toast.add({

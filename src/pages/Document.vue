@@ -420,7 +420,6 @@ watch(itemsPerPage, () => {
       :documentId="selectedDocumentForShare.id"
       :documentName="selectedDocumentForShare.filename"
       @close="closeShareModal"
-      @shared="closeShareModal"
     />
 
     <!-- Download Progress Bar -->
@@ -455,7 +454,7 @@ watch(itemsPerPage, () => {
         </p>
       </router-link>
       <button
-      v-if="can('admin: view')"
+      v-if="can('admin : view')"
         @click="
           showModal = true;
           modalType = 'UploadDocument';
@@ -463,7 +462,6 @@ watch(itemsPerPage, () => {
         class="flex bg-blue-500 gap-x-2 px-2 shadow-lg rounded-lg items-center hover:bg-blue-600 transition-colors cursor-pointer"
       >
         <PlusCircleIcon class="size-5 text-white"></PlusCircleIcon>
-
         <p class="text-white font-semibold p-2 text-sm">Upload Document</p>
       </button>
     </section>
