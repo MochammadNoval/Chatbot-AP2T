@@ -42,7 +42,7 @@ export const uploadExcelFile = async (formData, onUploadProgress, cancelToken) =
       throw new Error('Upload dibatalkan');
     }
 
-    const message = error.response?.data?.message || error.message || 'Upload Excel gagal';
+    const message = error.response?.data?.detail;
     throw new Error(message);
   }
 };

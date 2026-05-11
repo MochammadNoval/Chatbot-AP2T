@@ -239,14 +239,30 @@ const uploadToServer = async () => {
     }, 2000);
   } catch (err) {
     if (err.message !== "Upload dibatalkan") {
-      console.error(err.message);
+      console.error('[Upload Error]', err);
+      
       toast.add({
         severity: "error",
-        summary: "Error",
+        summary: "Error Upload",
         detail: err.message || "Upload gagal",
-        life: 3000,
+        life: 7000,
       });
+      
+      // Reset state untuk kembali ke modal awal
+      uploadProgress.value = 0;
+      uploadedSize.value = 0;
+      totalSize.value = 0;
+      uploadStartTime.value = null;
+      estimatedTimeRemaining.value = 0;
+      
+      // Reset file input
+      if (fileInput.value) {
+        fileInput.value.value = "";
+      }
+      formData.value.file = null;
+      formData.value.filename = "";
     }
+
   } finally {
     isLoading.value = false;
     uploadCancelSource.value = null;
