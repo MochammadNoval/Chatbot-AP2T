@@ -70,6 +70,7 @@ const isLoading = ref(false);
 const toast = useToast();
 const isDragging = ref(false);
 const fileInput = ref(null);
+const aiIndexStatus = ref(false);
 const emit = defineEmits(["close", "upload", "completed"]);
 
 // Progress tracking states
@@ -128,6 +129,7 @@ watch([() => props.isOpen, () => props.idDocument], async ([isOpen, id]) => {
     nameFileForPlaceholder.value = fileById.value.filename;
     tag.value = await getTags();
     listTagInFile.value = fileById.value.tags;
+    aiIndexStatus.value = fileById.value.ai_index || false;
     useAuth.setLoading(false);
   } catch (error) {
     toast.add({
@@ -236,6 +238,32 @@ const handleUpdate = async () => {
   }
 };
 
+const handleToggleAiIndex = async () => {
+  try {
+    isLoading.value = true;
+    await updateFiles(props.idDocument, {
+      ai_index: aiIndexStatus.value,
+    });
+
+    toast.add({
+      severity: "success",
+      summary: "Sukses",
+      detail: `AI Index berhasil diubah menjadi ${aiIndexStatus.value ? "enable" : "disable"}`,
+      life: 3000,
+    });
+  } catch (error) {
+    aiIndexStatus.value = !aiIndexStatus.value;
+    toast.add({
+      severity: "error",
+      summary: "Error",
+      detail: error.message || "Gagal mengubah AI Index",
+      life: 3000,
+    });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 const getDocumentById = async (id) => {
   try {
     const res = await getFilesById(id);
@@ -280,6 +308,7 @@ const uploadToServer = async () => {
     dataFile.append("file", formData.value.file);
     dataFile.append("filename", formData.value.filename);
     dataFile.append("tag_ids", JSON.stringify(selectedTag.value || []));
+    dataFile.append("ai_index", aiIndexStatus.value);
 
     // Initialize cancel token for this upload
     uploadCancelSource.value = axios.CancelToken.source();
@@ -655,6 +684,36 @@ const closeModal = () => {
         <p class="text-xs text-gray-500 mt-1">
           {{ selectedTag.length }} tag dipilih
         </p>
+
+      </div>
+            <!-- AI Index Toggle -->
+      <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex flex-col">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">
+            AI Indexing
+          </label>
+          <p class="text-xs text-gray-600">
+            {{ aiIndexStatus ? "Aktif" : "Non Aktif" }}
+          </p>
+        </div>
+        <button
+          @click="aiIndexStatus = !aiIndexStatus; "
+          :disabled="isLoading"
+          :class="{
+            'bg-green-500 hover:bg-green-600': aiIndexStatus,
+            'bg-gray-400 hover:bg-gray-500': !aiIndexStatus,
+          }"
+          class="relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
+        >
+          <span
+            :class="{
+              'translate-x-5': aiIndexStatus,
+              'translate-x-0': !aiIndexStatus,
+            }"
+            class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform"
+          />
+        </button>
       </div>
     </div>
 
@@ -670,6 +729,36 @@ const closeModal = () => {
           :placeholder="`Nama saat ini: ${nameFileForPlaceholder}`"
           class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
+      </div>
+
+      <!-- AI Index Toggle -->
+      <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex flex-col">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">
+            AI Indexing
+          </label>
+          <p class="text-xs text-gray-600">
+            {{ aiIndexStatus ? "Diaktifkan" : "Dinonaktifkan" }}
+          </p>
+        </div>
+        <button
+          @click="aiIndexStatus = !aiIndexStatus; handleToggleAiIndex()"
+          :disabled="isLoading"
+          :class="{
+            'bg-green-500 hover:bg-green-600': aiIndexStatus,
+            'bg-gray-400 hover:bg-gray-500': !aiIndexStatus,
+          }"
+          class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
+        >
+          <span
+            :class="{
+              'translate-x-7': aiIndexStatus,
+              'translate-x-1': !aiIndexStatus,
+            }"
+            class="inline-block h-6 w-6 transform rounded-full bg-white transition-transform"
+          />
+        </button>
       </div>
 
       <!-- Tags Section -->
