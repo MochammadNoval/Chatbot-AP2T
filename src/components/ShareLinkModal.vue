@@ -56,12 +56,12 @@
       </div>
 
       <!-- Buttons -->
-      <div class="flex gap-2 justify-end relative">
+      <div class="flex  justify-end relative">
         <!-- Smart Main Button (Dynamic) -->
         <button
           @click="handleMainAction"
           :class="[
-            'px-4 py-2 text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed',
+            'px-4 py-2 text-white rounded-l-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed',
             buttonConfig.bgColor
           ]"
           :disabled="buttonConfig.disabled"

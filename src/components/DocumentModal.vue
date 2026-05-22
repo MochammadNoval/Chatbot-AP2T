@@ -251,6 +251,7 @@ const handleToggleAiIndex = async () => {
       detail: `AI Index berhasil diubah menjadi ${aiIndexStatus.value ? "enable" : "disable"}`,
       life: 3000,
     });
+    
   } catch (error) {
     aiIndexStatus.value = !aiIndexStatus.value;
     toast.add({
@@ -731,35 +732,7 @@ const closeModal = () => {
         />
       </div>
 
-      <!-- AI Index Toggle -->
-      <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div class="flex flex-col">
-          <label class="block text-sm font-semibold text-gray-700 mb-1">
-            AI Indexing
-          </label>
-          <p class="text-xs text-gray-600">
-            {{ aiIndexStatus ? "Diaktifkan" : "Dinonaktifkan" }}
-          </p>
-        </div>
-        <button
-          @click="aiIndexStatus = !aiIndexStatus; handleToggleAiIndex()"
-          :disabled="isLoading"
-          :class="{
-            'bg-green-500 hover:bg-green-600': aiIndexStatus,
-            'bg-gray-400 hover:bg-gray-500': !aiIndexStatus,
-          }"
-          class="relative inline-flex h-8 w-14 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          type="button"
-        >
-          <span
-            :class="{
-              'translate-x-7': aiIndexStatus,
-              'translate-x-1': !aiIndexStatus,
-            }"
-            class="inline-block h-6 w-6 transform rounded-full bg-white transition-transform"
-          />
-        </button>
-      </div>
+      
 
       <!-- Tags Section -->
       <div>
@@ -829,6 +802,35 @@ const closeModal = () => {
           :multiple="true"
           :hideSelectedItems="true"
         />
+      </div>
+      <!-- AI Index Toggle -->
+      <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex flex-col">
+          <label class="block text-sm font-semibold text-gray-700 mb-1">
+            AI Indexing
+          </label>
+          <p class="text-xs text-gray-600">
+            {{ aiIndexStatus ? "Diaktifkan" : "Dinonaktifkan" }}
+          </p>
+        </div>
+        <button
+          @click="aiIndexStatus = !aiIndexStatus; handleToggleAiIndex()"
+          :disabled="isLoading"
+          :class="{
+            'bg-green-500 hover:bg-green-600': aiIndexStatus,
+            'bg-gray-400 hover:bg-gray-500': !aiIndexStatus,
+          }"
+          class="relative inline-flex h-6 w-12 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          type="button"
+        >
+          <span
+            :class="{
+              'translate-x-7': aiIndexStatus,
+              'translate-x-1': !aiIndexStatus,
+            }"
+            class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform"
+          />
+        </button>
       </div>
     </div>
 

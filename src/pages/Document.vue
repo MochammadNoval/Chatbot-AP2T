@@ -66,7 +66,7 @@ let tags = ref([]);
 let searchQuery = ref(""); // Menyimpan search query
 let currentPage = ref(1); // Halaman saat ini
 const itemsPerPageOptions = [5, 10, 20, 50, 100]; // Opsi jumlah items per halaman
-let itemsPerPage = ref(5); // Items per halaman
+let itemsPerPage = ref(10); // Items per halaman
 
 // Download state management
 const isDownloading = ref(false);
