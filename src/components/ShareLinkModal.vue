@@ -181,6 +181,13 @@ const isLinkActive = ref(true); // Track if link is active/disabled
 
 const SharedLink = ref(null);
 
+// Helper untuk membuat share URL secara fleksibel (menggunakan Env Variable atau origin browser)
+const getShareUrl = (token) => {
+  const baseUrl = import.meta.env.VITE_SHARE_BASE_URL || window.location.origin;
+  const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return `${cleanBaseUrl}/api/files/public/shares/${token}/download/`;
+};
+
 // Track original values for change detection
 const originalPassword = ref(null);
 const originalExpiredAt = ref('');
@@ -249,8 +256,8 @@ const loadShareLink = async () => {
       // Ambil share_token dari response
       const token = response.share_token;
       
-      // Generate full URL dengan format yang diminta
-      shareUrl.value = `http://10.14.153.97/api/files/public/shares/${token}/download/`;
+      // Generate full URL secara dinamis/konfigurasi
+      shareUrl.value = getShareUrl(token);
       SharedLink.value = token;
       
       // Track original values dari response untuk deteksi perubahan
@@ -316,7 +323,7 @@ const handleSubmit = async () => {
 
       if (response && response.share_token) {
         const token = response.share_token;
-        shareUrl.value = `/api/files/public/shares/${token}/download/`;
+        shareUrl.value = getShareUrl(token);
         SharedLink.value = token;
         
         // Update original values setelah create

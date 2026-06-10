@@ -7,7 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  
+
   return {
     plugins: [vue(), tailwindcss()],
     server: {
@@ -20,8 +20,8 @@ export default defineConfig(({ command, mode }) => {
         },
       },
     },
-    resolve:{
-      alias:{
+    resolve: {
+      alias: {
         '@': resolve(__dirname, 'src')
       }
     }
