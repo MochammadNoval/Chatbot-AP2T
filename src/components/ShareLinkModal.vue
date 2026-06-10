@@ -458,14 +458,45 @@ const handleEnablelink = async () => {
   }
 };
 
+const copyToClipboardFallback = (text) => {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  
+  // Hindari scrolling dan visual layout shift
+  textArea.style.top = "0";
+  textArea.style.left = "0";
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    const successful = document.execCommand("copy");
+    if (!successful) {
+      throw new Error("Copy command failed");
+    }
+  } catch (err) {
+    console.error("Fallback copy failed:", err);
+    throw err;
+  } finally {
+    document.body.removeChild(textArea);
+  }
+};
+
 const handleCopyToClipboard = async () => {
   // console.log('copied')
   //if (!shareUrl.value) return;
   try {
     isUrlCopying.value = true;
     
-    // shareUrl sudah dalam format full URL
-    await navigator.clipboard.writeText(shareUrl.value);
+    // Gunakan navigator.clipboard jika dalam secure context (HTTPS/localhost), jika tidak pakai fallback
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      await navigator.clipboard.writeText(shareUrl.value);
+    } else {
+      copyToClipboardFallback(shareUrl.value);
+    }
     
     isUrlCopied.value = true;
     toast.add({
