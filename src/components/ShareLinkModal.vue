@@ -244,15 +244,13 @@ const buttonConfig = computed(() => {
 const loadShareLink = async () => {
   try {
     const response = await getShareLink(props.documentId);
-    
-    console.log(response);
 
     if (response && response.share_token) {
       // Ambil share_token dari response
       const token = response.share_token;
       
       // Generate full URL dengan format yang diminta
-      shareUrl.value = `http://localhost:5170/api/files/public/shares/${token}/download/`;
+      shareUrl.value = `http://10.14.153.97/api/files/public/shares/${token}/download/`;
       SharedLink.value = token;
       
       // Track original values dari response untuk deteksi perubahan
