@@ -185,7 +185,7 @@ const SharedLink = ref(null);
 const getShareUrl = (token) => {
   const baseUrl = import.meta.env.VITE_SHARE_BASE_URL || window.location.origin;
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${cleanBaseUrl}/api/files/public/shares/${token}/download/`;
+  return `${cleanBaseUrl}/api/files/public/shares/${token}/preview/`;
 };
 
 // Track original values for change detection
