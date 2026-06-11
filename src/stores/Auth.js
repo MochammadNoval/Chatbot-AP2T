@@ -16,7 +16,8 @@ export const useAuthStores = defineStore("auth", {
     token_expiry_time: null,
     expires_in: null  // Token duration dalam detik dari backend
   }),
-  
+  persist: true,
+
   getters: {
     isTokenExpired: (state) => {
       return isTokenExpired(state.token_expiry_time);
@@ -29,22 +30,22 @@ export const useAuthStores = defineStore("auth", {
     login(user, tokens = {}) {
       this.username = user.name;
       this.loggedIn = true;
-      
+
       // Simpan tokens
       this.access_token = tokens.access_token || localStorage.getItem("access_token");
       this.refresh_token = tokens.refresh_token || null;
-      
+
       // Simpan expires_in (duration dalam detik)
       if (tokens.expires_in) {
         this.expires_in = tokens.expires_in;
         console.log('[Auth Store] 📝 login: expires_in stored -', tokens.expires_in, 'seconds');
       }
-      
+
       // Set token expiry time using utility function
       if (tokens.expires_in) {
         this.token_expiry_time = calculateTokenExpiryTime(tokens.expires_in);
       }
-      
+
       // Simpan ke localStorage
       if (tokens.access_token) {
         localStorage.setItem("access_token", tokens.access_token);
@@ -63,12 +64,12 @@ export const useAuthStores = defineStore("auth", {
           expiry_date: new Date(this.token_expiry_time).toLocaleString()
         });
       }
-      
+
       localStorage.setItem("username", user.name);
       localStorage.setItem("loggedIn", true);
       localStorage.setItem("user_id", user.id);
     },
-    
+
     logout() {
       this.username = "";
       this.loggedIn = false;
@@ -77,7 +78,7 @@ export const useAuthStores = defineStore("auth", {
       this.refresh_token = null;
       this.token_expiry_time = null;
       this.expires_in = null;
-      
+
       console.log('[Auth Store] 🔓 logout: clearing all tokens');
       localStorage.removeItem("username");
       localStorage.removeItem("loggedIn");
@@ -88,45 +89,45 @@ export const useAuthStores = defineStore("auth", {
       localStorage.removeItem("token_expires_in");  // Remove stored expires_in
     },
 
-    setUser(userData){
-      const permissions = ROLE_PERMISSIONS[userData.role] || []; 
+    setUser(userData) {
+      const permissions = ROLE_PERMISSIONS[userData.role] || [];
       this.user = {
-        ...userData, permissions 
+        ...userData, permissions
       }
       localStorage.setItem("ROLE", JSON.stringify(permissions))
     },
 
-    handleUnauthorized(){
-      if(this.sessionExpired) return;
+    handleUnauthorized() {
+      if (this.sessionExpired) return;
       this.sessionExpired = true;
       this.logout()
     },
-    
+
     async refreshToken(authService) {
       try {
         if (!this.refresh_token) {
           throw new Error("No refresh token available");
         }
-        
+
         const response = await authService.refreshToken(this.refresh_token);
-        
+
         // Update tokens
         this.access_token = response.access_token;
         this.refresh_token = response.refresh_token;
         this.token_expiry_time = Date.now() + (response.expires_in * 1000);
-        
+
         // Simpan ke localStorage
         localStorage.setItem("access_token", response.access_token);
         localStorage.setItem("refresh_token", response.refresh_token);
         localStorage.setItem("token_expiry_time", this.token_expiry_time.toString());
-        
+
         return response;
       } catch (error) {
         this.logout();
         throw error;
       }
     },
-    
+
     setMessage(msg) {
       this.message = msg;
     },
