@@ -19,7 +19,9 @@ import {
   TrashIcon,
   FolderIcon,
   EllipsisVerticalIcon,
-  ArrowDownOnSquareStackIcon
+  ArrowDownOnSquareStackIcon,
+  ShareIcon,
+  DocumentMagnifyingGlassIcon
 } from "@heroicons/vue/24/outline";
 
 import { onMounted, ref, computed, watch } from "vue";
@@ -567,26 +569,26 @@ watch(itemsPerPage, () => {
                   </button>
 
                   <!--  -->
-
-                  <!-- Button Edit -->
+                  
                   <button
                     v-if="can('admin : view')"
-                    @click="editDocument(document.id)"
+                    @click="openShareModal(document)"
                     class="p-2 cursor-pointer text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                    title="Edit"
+                    title="Share Link"
                   >
-                    <PencilIcon class="size-5"></PencilIcon>
+                    <ShareIcon class="size-5"></ShareIcon>
                   </button>
-
-                  <!-- Button Hapus -->
+                  
                   <button
                     v-if="can('admin : view')"
-                    @click="handleDeleteFile(document.id)"
-                    class="p-2 cursor-pointer text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                    title="Hapus"
+                    @click="handlePreviewDocument(document)"
+                    class="p-2 cursor-pointer text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+                    title="Preview"
                   >
-                    <TrashIcon class="size-5"></TrashIcon>
+
+                    <DocumentMagnifyingGlassIcon class="size-5 text-slate-500"></DocumentMagnifyingGlassIcon>
                   </button>
+
 
                   <!-- Menu Button (Three Dots) -->
                   <button
@@ -603,19 +605,16 @@ watch(itemsPerPage, () => {
                     :ref="(el) => menuRefs[document.id] = el"
                     :model="[
                       {
-                        label: 'Preview',
-                        icon: 'pi pi-eye',
-                        command: () => handlePreviewDocument(document),
+                        label: 'Edit',
+                        command: () => editDocument(document.id)
+                      },
+                      {
+                        label: 'Hapus',
+                        command: () => handleDeleteFile(document.id)
                       },
                       {
                         label: 'Download',
-                        icon: 'pi pi-download',
                         command: () => handledownloadFile(document.id),
-                      },
-                      {
-                        label: 'Share Link',
-                        icon: 'pi pi-share-alt',
-                        command: () => openShareModal(document),
                       },
                     ]"
                     :popup="true"
