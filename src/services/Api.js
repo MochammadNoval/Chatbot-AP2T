@@ -41,7 +41,8 @@ api.interceptors.request.use(
       requestUrl.endsWith("/auth/refresh") ||
       requestUrl.includes("auth/login") ||
       requestUrl.includes("auth/register") ||
-      requestUrl.includes("auth/refresh");
+      requestUrl.includes("auth/refresh") ||
+      requestUrl.includes("/files/public/");
     
     // Untuk public paths, langsung return config (tidak perlu cek token)
     if (isPublic) {

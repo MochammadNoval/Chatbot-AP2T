@@ -8,7 +8,7 @@ export async function getFiles() {
     return response.data;
   } catch (error) {
     let fileMessage = "Gagal memuat file, silahkan coba lagi";
-    
+
     if (error.response) {
       // Ambil pesan asli dari backend
       fileMessage = extractErrorMessage(error, fileMessage);
@@ -17,7 +17,7 @@ export async function getFiles() {
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
-    
+
     throw new Error(fileMessage);
   }
 }
@@ -35,7 +35,7 @@ export async function getFilesByTags(tagIds) {
     return response.data;
   } catch (error) {
     let fileMessage = "Gagal memuat file berdasarkan tag, silahkan coba lagi";
-    
+
     if (error.response) {
       // Ambil pesan asli dari backend
       fileMessage = extractErrorMessage(error, fileMessage);
@@ -44,7 +44,7 @@ export async function getFilesByTags(tagIds) {
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
-    
+
     throw new Error(fileMessage);
   }
 }
@@ -55,7 +55,7 @@ export async function getFilesById(id) {
     return response.data;
   } catch (error) {
     let fileMessage = "Gagal memuat dokumen, silahkan coba lagi";
-    
+
     if (error.response) {
       // Ambil pesan asli dari backend
       fileMessage = extractErrorMessage(error, fileMessage);
@@ -64,7 +64,7 @@ export async function getFilesById(id) {
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
-    
+
     throw new Error(fileMessage);
   }
 }
@@ -94,7 +94,7 @@ export async function uploadFileAxios(formData, onProgress, cancelToken = null) 
 
     console.error(error);
     let fileMessage = "Upload gagal, silahkan coba lagi";
-    
+
     if (error.response) {
       // Ambil pesan asli dari backend (bisa: file terlalu besar, format tidak support, dll)
       fileMessage = extractErrorMessage(error, fileMessage);
@@ -103,7 +103,7 @@ export async function uploadFileAxios(formData, onProgress, cancelToken = null) 
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
-    
+
     throw new Error(fileMessage);
   }
 }
@@ -123,7 +123,7 @@ export async function updateFiles(id, payload) {
     } else {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
-    
+
     throw new Error(fileMessage);
   }
 }
@@ -236,7 +236,7 @@ export function downloadFile(id, onProgress) {
 
   // RETURN IMMEDIATELY dengan abortController dan promise
   // Component bisa langsung call abortController.abort() tanpa menunggu
-  return { 
+  return {
     abortController,
     promise: downloadPromise,
     isCompleted: () => downloadCompleted,
@@ -439,15 +439,15 @@ export async function updateShareLink(fileId, payload = {}) {
 
     // Buat object untuk dikirim, hanya kirim field yang disediakan
     const updateData = {};
-    
+
     if (payload.hasOwnProperty('password')) {
       updateData.password = payload.password;
     }
-    
+
     if (payload.hasOwnProperty('expires_at')) {
       updateData.expires_at = payload.expires_at;
     }
-    
+
     if (payload.hasOwnProperty('is_active')) {
       updateData.is_active = payload.is_active;
     }
@@ -468,6 +468,48 @@ export async function updateShareLink(fileId, payload = {}) {
       fileMessage = "Aplikasi mengalami gangguan sementara, silahkan coba beberapa saat kemudian";
     }
 
+    throw new Error(fileMessage);
+  }
+}
+
+/**
+ * Ambil preview dokumen secara publik menggunakan share token
+ * @param {string} shareToken - Token public share
+ * @param {string} password - Password share link (optional)
+ * @returns {Promise<Object>} Response berisi blob data dan headers
+ */
+export async function getPublicSharePreview(shareToken, password = null) {
+  try {
+    const config = {
+      responseType: "blob",
+    };
+
+    if (password) {
+      config.params = { password };
+    }
+
+    const response = await api.get(`/files/public/shares/${shareToken}/preview`, config);
+    return response;
+  } catch (error) {
+    if (error.response && error.response.data instanceof Blob) {
+      // Baca error message dari Blob response
+      const text = await error.response.data.text();
+      try {
+        const errorJson = JSON.parse(text);
+        throw new Error(errorJson.message || "Gagal memuat preview dokumen");
+      } catch (e) {
+        throw new Error("Password salah atau link kedaluwarsa");
+      }
+    }
+    
+    let fileMessage = "Gagal memuat preview dokumen, silahkan coba lagi";
+    if (error.response) {
+      fileMessage = extractErrorMessage(error, fileMessage);
+    } else if (error.request) {
+      fileMessage = "Periksa koneksi internet Anda, silahkan coba lagi";
+    } else if (error.message) {
+      fileMessage = error.message;
+    }
     throw new Error(fileMessage);
   }
 }

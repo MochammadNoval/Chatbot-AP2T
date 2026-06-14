@@ -15,6 +15,7 @@ import DashboardSertifikasi from "../pages/DashboardSertifikasi.vue"
 
 import { useAuthStores } from "../stores/Auth";
 import NotAllowed from "../pages/NotAllowed.vue";
+import ProtectedPreview from "../pages/ProtectedPreview.vue";
 
 
 const routes = [
@@ -27,6 +28,12 @@ const routes = [
     name: "login",
     component: AuthLayout,
     children: [{ path: "", component: Login }],
+  },
+  {
+    path: '/share/:token',
+    name: "protectedPreview",
+    component: AuthLayout,
+    children: [{ path: "", component: ProtectedPreview }],
   },
   {
     path: "/document",
@@ -53,7 +60,7 @@ const routes = [
         path: "/tags",
         name: "tags",
         component: Tags,
-        meta : {
+        meta: {
           permissions: ['admin : view']
         }
       },
@@ -121,7 +128,7 @@ router.beforeEach((to, from, next) => {
     console.log("User Permissions:", auth.user?.permissions)
     console.log("Required:", to.meta.permissions)
 
-    const allowed = to.meta.permissions.every(permissions => 
+    const allowed = to.meta.permissions.every(permissions =>
       auth.user?.permissions.includes(permissions)
     )
 
@@ -134,7 +141,7 @@ router.beforeEach((to, from, next) => {
     } else {
       next();
     }
-  } 
+  }
   else {
     next();
   }

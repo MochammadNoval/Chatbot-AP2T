@@ -7,10 +7,8 @@ import TagSearchFilter from "../components/TagSearchFilter.vue";
 import DownloadProgressBar from "../components/DownloadProgressBar.vue";
 import { useToast } from "primevue/usetoast";
 import Menu from "primevue/menu";
-import Button from "primevue/button";
 import { usePreviewModal } from "../composables/usePreviewModal";
 import Swal from "sweetalert2";
-import api from "../services/Api";
 
 import {
   FunnelIcon,
@@ -37,9 +35,11 @@ import Pagination from "../components/Pagination.vue";
 
 // PERMISSION ///
 import {usePermission} from "../composables/usePermissions"
+import { useFileStores } from "../stores/File.js";
 const {can} = usePermission()
 
 const useAuth = useAuthStores();
+const files = useFileStores()
 const toast = useToast();
 const {
   isOpen: isPreviewOpen,
@@ -197,6 +197,7 @@ const handleDeleteFile = async (id) => {
 };
 
 const handledownloadFile = async (id) => {
+  files.setFileId(id)
   try {
     // Find document to get file info
     const document = allDocuments.value.find(doc => doc.id === id) || documents.value.find(doc => doc.id === id);
@@ -546,16 +547,13 @@ watch(itemsPerPage, () => {
               </td>
               <td class="px-6 py-2 text-center">
                 <div class="flex justify-center gap-2">
-                  
-
                   <!-- BUTTON SHOW IF ROLE === USER -->
 
                    <button
                     v-if="can('user : view')"
                     @click="handlePreviewDocument(document)"
                     class="p-2 cursor-pointer text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
-                    title="Preview"
-                  >
+                    title="Preview">
                     <EyeIcon class="size-5"></EyeIcon>
                   </button>
 
@@ -602,7 +600,6 @@ watch(itemsPerPage, () => {
 
                   <!-- Action Menu Dropdown -->
                   <Menu
-
                     :ref="(el) => menuRefs[document.id] = el"
                     :model="[
                       {

@@ -55,6 +55,11 @@
         </div>
       </div>
 
+      <p v-if="SharedLink" class="text-black text-xs break-all mb-2">💡Tombol copy bermasalah? Salin link secara manual</p>
+      <div v-if="SharedLink" class="py-2 px-4 mb-4 bg-blue-400 rounded-lg">
+        <p class="text-white text-sm break-all">{{ shareUrl }}</p>
+      </div>
+
       <!-- Buttons -->
       <div class="flex  justify-end relative">
         <!-- Smart Main Button (Dynamic) -->
@@ -185,7 +190,7 @@ const SharedLink = ref(null);
 const getShareUrl = (token) => {
   const baseUrl = import.meta.env.VITE_SHARE_BASE_URL || window.location.origin;
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${cleanBaseUrl}/api/files/public/shares/${token}/preview/`;
+  return `${cleanBaseUrl}/share/${token}`;
 };
 
 // Track original values for change detection
@@ -270,8 +275,6 @@ const loadShareLink = async () => {
       
       // Track link's active status
       isLinkActive.value = response.is_active !== false;
-      
-      console.log('Share Link Loaded:', shareUrl.value);
     }
   } catch (error) {
     // Jika tidak ada share link, biarkan shareUrl tetap null
@@ -306,7 +309,6 @@ const resetForm = () => {
 
 
 const handleSubmit = async () => {
-  console.log(`expired at ${expiredAt.value}`);
   try {
     isLoadingSubmit.value = true;
 
