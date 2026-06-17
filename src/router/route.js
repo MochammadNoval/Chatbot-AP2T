@@ -16,6 +16,7 @@ import DashboardSertifikasi from "../pages/DashboardSertifikasi.vue"
 import { useAuthStores } from "../stores/Auth";
 import NotAllowed from "../pages/NotAllowed.vue";
 import ProtectedPreview from "../pages/ProtectedPreview.vue";
+import TalentManagement from "../pages/Talent-Management.vue";
 
 
 const routes = [
@@ -85,7 +86,7 @@ const routes = [
       {
         path: "/talent-management",
         name: "talent-management",
-        component: Maintenance,
+        component: TalentManagement,
       },
       {
         path: "/403",

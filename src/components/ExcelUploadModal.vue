@@ -16,6 +16,10 @@ const props = defineProps({
     type: String,
     default: "Upload Excel File",
   },
+  uploadService: {
+    type: Function,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["close", "completed", "upload-success"]);
@@ -199,7 +203,8 @@ const uploadToServer = async () => {
     uploadStartTime.value = Date.now();
     totalSize.value = formData.value.file.size;
 
-    const res = await uploadExcelFile(
+    const uploadFn = props.uploadService || uploadExcelFile;
+    const res = await uploadFn(
       dataFile,
       (progressEvent) => {
         const percent = (progressEvent.loaded / progressEvent.total) * 100;
@@ -611,7 +616,7 @@ const handleCancelDownload = () => {
       
       <!-- Button Download -->
       <button 
-          v-if="uploadProgress === 0"
+          v-if="uploadProgress === 0 "
           @click="handleDownloadTemplate"
           class=" px-4 py-2 ml-auto bg-amber-600 hover:bg-amber-700 rounded-lg font-semibold transition-colors text-white flex items-center justify-center gap-2"
           :disabled="showDownloadProgress"
