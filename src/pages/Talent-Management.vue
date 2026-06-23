@@ -4,42 +4,85 @@ import {
   PlusCircleIcon, 
   MagnifyingGlassIcon, 
   XMarkIcon,
-  AcademicCapIcon,
-  BuildingOfficeIcon,
   CalendarIcon,
-  UserIcon
+  UserIcon,
+  AdjustmentsVerticalIcon
 } from "@heroicons/vue/24/outline";
 import ExcelUploadModal from "../components/ExcelUploadModal.vue";
 import Pagination from "../components/Pagination.vue";
+import CustomMultiSelect from "../components/CustomMultiSelect.vue";
 import { usePermission } from "../composables/usePermissions";
 import { uploadSertifikasiExcel, getSertifikasiList } from "../services/Sertifikasi";
 
+// can: Fungsi helper dari usePermission untuk memeriksa hak akses pengguna (misal: tombol upload).
 const { can } = usePermission();
 
+// searchQuery: Menyimpan kata kunci pencarian global (NIP, nama, atau sertifikasi).
 const searchQuery = ref("");
+// placeholder: Menyimpan teks placeholder untuk kolom pencarian global.
 const placeholder = ref("Masukkan NIP, nama, atau sertifikasi...");
+// showExcelUploadModal: Menyimpan status visibilitas modal untuk upload Excel (true untuk tampil).
 const showExcelUploadModal = ref(false);
-const startDate = ref("");
-const endDate = ref("");
 
 // State Management
-const talents = ref([]);
-const totalItems = ref(0);
+// masterTalents: Menyimpan seluruh data dari database untuk mengambil daftar unik opsi filter (NIP, Nama, dll.).
+const masterTalents = ref([]);
+// allTalents: Menyimpan seluruh data hasil pencarian global saat ini (sebelum difilter oleh 5 filter advanced).
+const allTalents = ref([]);
+// currentPage: Menyimpan nomor halaman data tabel yang sedang aktif.
 const currentPage = ref(1);
+// itemsPerPage: Menyimpan jumlah baris data yang ditampilkan dalam satu halaman.
 const itemsPerPage = ref(10);
+// itemsPerPageOptions: Menyimpan pilihan jumlah baris data per halaman (5, 10, 20, 50, 100).
 const itemsPerPageOptions = [5, 10, 20, 50, 100];
+// isLoading: Menyimpan status loading saat aplikasi sedang memproses pemanggilan API (true untuk loading).
 const isLoading = ref(false);
+
+// Filter Selections
+// isShowAdvanceFilter: Menyimpan status visibilitas panel filter advanced (true untuk tampil).
+const isShowAdvanceFilter = ref(false);
+// selectedNips: Menyimpan daftar NIP yang dipilih dalam bentuk array untuk filter pencarian.
+const selectedNips = ref([]);
+// selectedNames: Menyimpan daftar nama pegawai yang dipilih dalam bentuk array untuk filter pencarian.
+const selectedNames = ref([]);
+// selectedPohonProfesis: Menyimpan daftar Pohon Profesi yang dipilih dalam bentuk array untuk filter pencarian.
+const selectedPohonProfesis = ref([]);
+// selectedKodeSchemas: Menyimpan daftar Kode Skema yang dipilih dalam bentuk array untuk filter pencarian.
+const selectedKodeSchemas = ref([]);
+// startDate: Menyimpan tanggal awal (dari) untuk pencarian rentang kadaluarsa sertifikat.
+const startDate = ref("");
+// endDate: Menyimpan tanggal akhir (sampai) untuk pencarian rentang kadaluarsa sertifikat.
+const endDate = ref("");
 
 const fetchTalents = async () => {
   isLoading.value = true;
   try {
-    const data = await getSertifikasiList(
-      currentPage.value,
-      itemsPerPage.value,
-      searchQuery.value
-    );
-    talents.value = data.items || [];
-    totalItems.value = data.total || 0;
+    const limit = 100;
+    const initialData = await getSertifikasiList(1, limit, searchQuery.value);
+    const items = [...(initialData.items || [])];
+    const total = initialData.total || 0;
+
+    // Fetch remaining pages in parallel if there are more than 100 items
+    if (total > limit) {
+      const pageCount = Math.ceil(total / limit);
+      const promises = [];
+      for (let p = 2; p <= pageCount; p++) {
+        promises.push(getSertifikasiList(p, limit, searchQuery.value));
+      }
+      const responses = await Promise.all(promises);
+      responses.forEach((res) => {
+        if (res && res.items) {
+          items.push(...res.items);
+        }
+      });
+    }
+
+    allTalents.value = items;
+
+    // If search is empty or masterTalents is not yet populated, set masterTalents to provide all unique options
+    if (!searchQuery.value || masterTalents.value.length === 0) {
+      masterTalents.value = items;
+    }
   } catch (error) {
     console.error("Gagal memuat data talent:", error);
   } finally {
@@ -54,19 +97,64 @@ onMounted(() => {
 // Watcher for itemsPerPage
 watch(itemsPerPage, () => {
   currentPage.value = 1;
-  fetchTalents();
 });
 
-const filteredTalents = computed(() => {
-  let result = talents.value;
+// Watch filters to reset page to 1 when search parameters change
+watch(
+  [selectedNips, selectedNames, selectedPohonProfesis, selectedKodeSchemas, startDate, endDate],
+  () => {
+    currentPage.value = 1;
+  }
+);
 
-  // Filter tanggal dilakukan di client-side atas data halaman saat ini
+// Compute unique options for CustomMultiSelect dropdowns
+const nipOptions = computed(() => {
+  const unique = [...new Set(masterTalents.value.map((t) => t.nip).filter(Boolean))];
+  return unique.map((nip) => ({ label: nip, value: nip }));
+});
+
+const namaOptions = computed(() => {
+  const unique = [...new Set(masterTalents.value.map((t) => t.nama_pegawai).filter(Boolean))];
+  return unique.map((nama) => ({ label: nama, value: nama }));
+});
+
+const pohonProfesiOptions = computed(() => {
+  const unique = [...new Set(masterTalents.value.map((t) => t.pohon_profesi_dd).filter(Boolean))];
+  return unique.map((pohon) => ({ label: pohon, value: pohon }));
+});
+
+const kodeSkemaOptions = computed(() => {
+  const unique = [...new Set(masterTalents.value.map((t) => t.kode_skema).filter(Boolean))];
+  return unique.map((kode) => ({ label: kode, value: kode }));
+});
+
+// Combined clientside filtering logic
+const filteredTalents = computed(() => {
+  let result = allTalents.value;
+
+  if (selectedNips.value && selectedNips.value.length > 0) {
+    result = result.filter((talent) => selectedNips.value.includes(talent.nip));
+  }
+
+  if (selectedNames.value && selectedNames.value.length > 0) {
+    result = result.filter((talent) => selectedNames.value.includes(talent.nama_pegawai));
+  }
+
+  if (selectedPohonProfesis.value && selectedPohonProfesis.value.length > 0) {
+    result = result.filter((talent) => selectedPohonProfesis.value.includes(talent.pohon_profesi_dd));
+  }
+
+  if (selectedKodeSchemas.value && selectedKodeSchemas.value.length > 0) {
+    result = result.filter((talent) => selectedKodeSchemas.value.includes(talent.kode_skema));
+  }
+
   if (startDate.value) {
     result = result.filter((talent) => {
       if (!talent.tanggal_berakhir) return false;
       return talent.tanggal_berakhir >= startDate.value;
     });
   }
+
   if (endDate.value) {
     result = result.filter((talent) => {
       if (!talent.tanggal_berakhir) return false;
@@ -76,6 +164,20 @@ const filteredTalents = computed(() => {
 
   return result;
 });
+
+// Total count of filtered items
+const totalItems = computed(() => filteredTalents.value.length);
+
+// Paginated slice of the filtered list
+const paginatedTalents = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  const end = start + itemsPerPage.value;
+  return filteredTalents.value.slice(start, end);
+});
+
+const handleShowAdvanceFilter = ()=> {
+  isShowAdvanceFilter.value = !isShowAdvanceFilter.value  
+}
 
 const handleExcelUploadSuccess = (response) => {
   fetchTalents();
@@ -98,16 +200,65 @@ const clearSearch = () => {
 
 const handlePageChange = (page) => {
   currentPage.value = page;
-  fetchTalents();
   // Auto-scroll ke atas table
   document
     .querySelector(".overflow-x-auto")
     ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
 };
 
+// Filter chip removals and helpers
+const removeNip = (nip) => {
+  selectedNips.value = selectedNips.value.filter((item) => item !== nip);
+};
+
+const removeName = (name) => {
+  selectedNames.value = selectedNames.value.filter((item) => item !== name);
+};
+
+const removePohon = (pohon) => {
+  selectedPohonProfesis.value = selectedPohonProfesis.value.filter((item) => item !== pohon);
+};
+
+const removeKode = (kode) => {
+  selectedKodeSchemas.value = selectedKodeSchemas.value.filter((item) => item !== kode);
+};
+
 const clearDateRange = () => {
   startDate.value = "";
   endDate.value = "";
+};
+
+const hasActiveFilters = computed(() => {
+  return (
+    selectedNips.value.length > 0 ||
+    selectedNames.value.length > 0 ||
+    selectedPohonProfesis.value.length > 0 ||
+    selectedKodeSchemas.value.length > 0 ||
+    startDate.value ||
+    endDate.value
+  );
+});
+
+const clearAllFilters = () => {
+  selectedNips.value = [];
+  selectedNames.value = [];
+  selectedPohonProfesis.value = [];
+  selectedKodeSchemas.value = [];
+  startDate.value = "";
+  endDate.value = "";
+};
+
+const formatDateRangeDisplay = () => {
+  if (startDate.value && endDate.value) {
+    return `${startDate.value} s/d ${endDate.value}`;
+  }
+  if (startDate.value) {
+    return `Dari ${startDate.value}`;
+  }
+  if (endDate.value) {
+    return `Sampai ${endDate.value}`;
+  }
+  return "";
 };
 </script>
 
@@ -126,8 +277,7 @@ const clearDateRange = () => {
     <!-- Page Header -->
     <header class="flex justify-between mb-6">
       <span>
-        <h1 class="text-black font-bold text-xl">Talent Manajemen</h1>
-        <p class="text-gray-500 text-xs mt-1">Pengelolaan talent dan pengembangan</p>
+        <h1 class="text-black font-bold text-xl">Sertifikat Kompetensi</h1>
       </span>
       <button
         v-if="can('admin : view')"
@@ -143,8 +293,8 @@ const clearDateRange = () => {
     <div class="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm mb-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 class="text-lg font-bold text-gray-900">Talent Pool Data</h2>
-          <p class="text-xs text-gray-500 mt-1">Daftar sertifikasi dan kompetensi pegawai</p>
+          <h2 class="text-lg font-bold text-gray-900">Daftar Sertifikat Kempetensi Pegawai</h2>
+          <!-- <p class="text-xs text-gray-500 mt-1">Daftar sertifikasi dan kompetensi pegawai</p> -->
         </div>
         
         <!-- Dropdown Rows Per Page -->
@@ -162,7 +312,7 @@ const clearDateRange = () => {
         </div>
       </div>
 
-      <!-- Search Section -->
+      <!-- Search Global -->
       <div class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
         <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
           Cari Data Berdasarkan NIP, Nama, atau Judul Sertifikasi
@@ -193,41 +343,159 @@ const clearDateRange = () => {
             <MagnifyingGlassIcon class="size-5 text-white" />
             <span>Cari</span>
           </button>
+
+          <button @click="handleShowAdvanceFilter" class=" hover:bg-blue-700 text-white font-medium text-sm px-5 py-2.5 rounded-lg flex items-center gap-x-2 transition-colors shadow-sm shadow-blue-500/10 cursor-pointer"
+          :class="isShowAdvanceFilter ? 'bg-blue-800 hover:bg-blue-900' : 'bg-blue-600'"
+          >
+            <AdjustmentsVerticalIcon class="size-5 text-white" />
+            <span>Advance Filter</span>
+          </button>
+        
         </div>
       </div>
 
-      <!-- Search by rentang waktu -->
-      <div class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
-          Cari Data Berdasarkan Expired Sertifikat (Rentang Waktu)
-        </label>
-        <div class="flex flex-col sm:flex-row gap-4 items-end">
-          <div class="flex-1 w-full">
-            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal Mulai</label>
-            <input
-              type="date"
-              v-model="startDate"
-              class="w-full text-sm text-gray-800 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-            />
-          </div>
-          <div class="flex-1 w-full">
-            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Tanggal Akhir</label>
-            <input
-              type="date"
-              v-model="endDate"
-              class="w-full text-sm text-gray-800 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-            />
-          </div>
+      <!-- Advanced Filters Section -->
+      <div v-if="isShowAdvanceFilter" class="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-200/60 pb-2">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            Filter Pencarian
+          </span>
           <button
-            v-if="startDate || endDate"
-            @click="clearDateRange"
-            type="button"
-            class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium text-sm rounded-lg transition-colors cursor-pointer w-full sm:w-auto h-[38px] flex items-center justify-center gap-1"
-            title="Reset filter tanggal"
+            v-if="hasActiveFilters"
+            @click="clearAllFilters"
+            class="text-xs text-red-600 hover:text-red-700 font-semibold flex items-center gap-1 cursor-pointer"
           >
-            <XMarkIcon class="size-4" />
-            <span>Reset</span>
+            <XMarkIcon class="size-3.5" />
+            <span>Reset Semua Filter</span>
           </button>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <!-- NIP Filter -->
+          <div class="flex flex-col">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">NIP</label>
+            <CustomMultiSelect
+              v-model="selectedNips"
+              :options="nipOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Pilih NIP..."
+              :multiple="true"
+              :hideSelectedItems="true"
+            />
+          </div>
+
+          <!-- Nama Filter -->
+          <div class="flex flex-col">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Nama Pegawai</label>
+            <CustomMultiSelect
+              v-model="selectedNames"
+              :options="namaOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Pilih Nama Pegawai..."
+              :multiple="true"
+              :hideSelectedItems="true"
+            />
+          </div>
+
+          <!-- Pohon Profesi Filter -->
+          <div class="flex flex-col">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Pohon Profesi</label>
+            <CustomMultiSelect
+              v-model="selectedPohonProfesis"
+              :options="pohonProfesiOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Pilih Pohon Profesi..."
+              :multiple="true"
+              :hideSelectedItems="true"
+            />
+          </div>
+
+          <!-- Kode Schema Filter -->
+          <div class="flex flex-col">
+            <label class="block text-xs font-semibold text-slate-600 mb-1.5">Kode Skema</label>
+            <CustomMultiSelect
+              v-model="selectedKodeSchemas"
+              :options="kodeSkemaOptions"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Pilih Kode Skema..."
+              :multiple="true"
+              :hideSelectedItems="true"
+            />
+          </div>
+        </div>
+
+        <!-- Date Expired Range Filter -->
+        <div class="border-t border-slate-200/60 pt-4">
+          <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+            Date Expired Range
+          </label>
+          <div class="flex flex-col sm:flex-row gap-4 items-end">
+            <div class="flex-1 w-full">
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Dari (Start Date)</label>
+              <input
+                type="date"
+                v-model="startDate"
+                class="w-full text-sm text-gray-800 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+              />
+            </div>
+            <div class="flex-1 w-full">
+              <label class="block text-xs font-semibold text-slate-600 mb-1.5">Sampai (End Date)</label>
+              <input
+                type="date"
+                v-model="endDate"
+                class="w-full text-sm text-gray-800 bg-white border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Chips -->
+        <div v-if="hasActiveFilters" class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-200/40">
+          <span class="text-xs font-semibold text-slate-400 flex items-center mr-1">Filter Aktif:</span>
+          
+          <!-- NIP Chips -->
+          <div v-for="nip in selectedNips" :key="'chip-nip-'+nip" class="px-2.5 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span>NIP: {{ nip }}</span>
+            <button @click="removeNip(nip)" class="hover:bg-blue-100 rounded-full p-0.5 text-blue-500 hover:text-blue-700 transition-colors">
+              <XMarkIcon class="size-3" />
+            </button>
+          </div>
+
+          <!-- Name Chips -->
+          <div v-for="name in selectedNames" :key="'chip-name-'+name" class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span>Nama: {{ name }}</span>
+            <button @click="removeName(name)" class="hover:bg-emerald-100 rounded-full p-0.5 text-emerald-500 hover:text-emerald-700 transition-colors">
+              <XMarkIcon class="size-3" />
+            </button>
+          </div>
+
+          <!-- Pohon Profesi Chips -->
+          <div v-for="pohon in selectedPohonProfesis" :key="'chip-pohon-'+pohon" class="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span>Profesi: {{ pohon }}</span>
+            <button @click="removePohon(pohon)" class="hover:bg-amber-100 rounded-full p-0.5 text-amber-500 hover:text-amber-700 transition-colors">
+              <XMarkIcon class="size-3" />
+            </button>
+          </div>
+
+          <!-- Kode Skema Chips -->
+          <div v-for="kode in selectedKodeSchemas" :key="'chip-kode-'+kode" class="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span>Skema: {{ kode }}</span>
+            <button @click="removeKode(kode)" class="hover:bg-purple-100 rounded-full p-0.5 text-purple-500 hover:text-purple-700 transition-colors">
+              <XMarkIcon class="size-3" />
+            </button>
+          </div>
+
+          <!-- Date Chip -->
+          <div v-if="startDate || endDate" class="px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-medium flex items-center gap-1.5">
+            <span>Expired: {{ formatDateRangeDisplay() }}</span>
+            <button @click="clearDateRange" class="hover:bg-rose-100 rounded-full p-0.5 text-rose-500 hover:text-rose-700 transition-colors">
+              <XMarkIcon class="size-3" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -251,12 +519,12 @@ const clearDateRange = () => {
               <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider">Nama Profesi</th>
               <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider">Pohon Profesi</th>
               <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider">Evident</th>
-              <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider">Created At</th>
+              <!-- <th class="px-6 py-3.5 text-xs font-bold uppercase tracking-wider">Created At</th> -->
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="(talent, index) in filteredTalents"
+              v-for="(talent, index) in paginatedTalents"
               :key="talent.id || talent.nip"
               class="hover:bg-slate-50/50 transition-colors"
               :class="index % 2 === 0 ? 'bg-white' : 'bg-slate-50/20'"
@@ -350,13 +618,13 @@ const clearDateRange = () => {
               </td>
 
               <!-- Created At -->
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+              <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                 <div v-if="talent.created_at" class="flex items-center gap-2">
                   <CalendarIcon class="size-4.5 text-slate-400 shrink-0" />
                   <span>{{ new Date(talent.created_at).toLocaleDateString("id-ID", { year: 'numeric', month: 'long', day: 'numeric' }) }}</span>
                 </div>
                 <span v-else>-</span>
-              </td>
+              </td> -->
             </tr>
           </tbody>
         </table>

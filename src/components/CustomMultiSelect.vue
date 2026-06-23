@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { ChevronDownIcon } from "@heroicons/vue/24/outline";
 
 const props = defineProps({
@@ -41,6 +41,21 @@ const emit = defineEmits(["update:modelValue", "change"]);
 
 const isOpen = ref(false);
 const searchQuery = ref("");
+const containerRef = ref(null);
+
+const handleClickOutside = (event) => {
+  if (containerRef.value && !containerRef.value.contains(event.target)) {
+    isOpen.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener("click", handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+});
 
 const filteredOptions = computed(() => {
   if (!searchQuery.value.trim()) {
@@ -107,7 +122,7 @@ const closeDropdown = () => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div ref="containerRef" class="relative w-full">
     <!-- Dropdown trigger button -->
     <div
       @click="toggleDropdown"

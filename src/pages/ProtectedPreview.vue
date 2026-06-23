@@ -65,7 +65,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-900 flex flex-col font-sans text-white">
+  <div class="min-h-screen  flex flex-col font-sans text-white">
     <!-- First Load Loading State -->
     <div v-if="isFirstLoad" class="flex-1 flex flex-col items-center justify-center bg-slate-950">
       <div class="relative w-16 h-16 mb-4">
@@ -75,14 +75,14 @@ onMounted(async () => {
     </div>
 
     <!-- Password Input View -->
-    <div v-else class="flex-1 flex items-center justify-center p-4 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950">
-      <div class="w-full max-w-md bg-slate-800/80 backdrop-blur-md border border-slate-700/60 rounded-2xl shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-200">
+    <div v-else class="flex-1 flex items-center justify-center p-4 ">
+      <div class="w-full max-w-md bg-mainblue backdrop-blur-md border border-mainblue/60 rounded-2xl shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-200">
         <!-- Header -->
         <div class="flex flex-col items-center text-center mb-8">
           <div class="p-4 bg-blue-500/10 rounded-2xl text-blue-400 mb-4 ring-8 ring-blue-500/5">
             <LockClosedIcon class="w-8 h-8 animate-pulse"></LockClosedIcon>
           </div>
-          <h2 class="text-2xl font-bold text-white tracking-tight">Dokumen Dilindungi</h2>
+          <h2 class="text-2xl font-bold text-slate-700 tracking-tight">Dokumen Dilindungi</h2>
           <p class="text-slate-400 text-sm mt-2 px-4">Tautan ini dilindungi oleh sandi. Silakan masukkan sandi untuk mengakses dokumen.</p>
         </div>
 
@@ -97,7 +97,7 @@ onMounted(async () => {
               v-model="passwordFile"
               type="password"
               placeholder="Masukkan kata sandi..."
-              class="w-full px-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/80 focus:border-transparent transition-all"
+              class="w-full px-4 py-3  border border-slate-700 rounded-xl text-slate-700 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/80 focus:border-transparent transition-all"
               required
             />
           </div>

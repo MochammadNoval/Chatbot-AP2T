@@ -578,7 +578,7 @@ const closeModal = () => {
       <!-- Group Tags -->
       <div>
         <!-- Selected group tags display -->
-        <div v-if="snpelectedGroupTag.length > 0" class="mb-3 ">
+        <div v-if="selectedGroupTag.length > 0" class="mb-3 ">
           <div class="flex flex-wrap gap-2">
             <div
               v-for="selected in selectedGroupTag"

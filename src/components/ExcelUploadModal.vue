@@ -616,7 +616,7 @@ const handleCancelDownload = () => {
       
       <!-- Button Download -->
       <button 
-          v-if="uploadProgress === 0 "
+          v-if="uploadProgress === 0 && props.title !== 'Upload Data Talent Pool' "
           @click="handleDownloadTemplate"
           class=" px-4 py-2 ml-auto bg-amber-600 hover:bg-amber-700 rounded-lg font-semibold transition-colors text-white flex items-center justify-center gap-2"
           :disabled="showDownloadProgress"

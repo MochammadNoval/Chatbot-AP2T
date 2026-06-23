@@ -313,7 +313,7 @@ const handleExpand = () => {
           <div
             class="flex items-center gap-2 transition-all duration-500 ease-in-out"
             :class="{
-              'translate-x-[30%]': isActive('/talent-management') && isExpand,
+              'translate-x-[15%]': isActive('/talent-management') && isExpand,
               'translate-x-0': isActive('/talent-management') && !isExpand,
             }"
           >
@@ -326,7 +326,7 @@ const handleExpand = () => {
                 'opacity-0 w-0 overflow-hidden': !isExpand,
               }"
             >
-              Talent Management
+              Sertifikat Kompetensi
             </p>
           </div>
         </router-link>
