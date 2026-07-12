@@ -14,6 +14,10 @@ import { usePreviewModal } from "../composables/usePreviewModal";
 import api from "../services/Api";
 import { ArrowPathIcon } from "@heroicons/vue/24/outline";
 import { useAuthStores } from "../stores/Auth";
+import { usePermission } from "../composables/usePermissions";
+import dummyData from "../constants/dummyKnowledge.json";
+
+const { hasRole } = usePermission();
 
 const isExpand = ref(true);
 const messages = ref([]);
@@ -111,7 +115,7 @@ const handleSelectSession = async (session) => {
       : response.messages || response.data || [];
 
     // Convert API messages to display format
-    messages.value = apiMessages.map((msg) => {
+    const formattedMessages = apiMessages.map((msg) => {
       // Determine message type based on sender
       let type = "bot";
       const sender = (msg.sender || msg.sender_type || "").toLowerCase();
@@ -128,9 +132,50 @@ const handleSelectSession = async (session) => {
         type,
         content: msg.message || msg.content || msg.text || "",
         timestamp,
-        sources: msg.sources_metadata || msg.full_sources || [],
+        sources: msg.sources_metadata || msg.full_sources || msg.sources || [],
       };
     });
+
+    // Fallback local search dummy data if sources empty in history for AP2T
+    if (hasRole('AP2T')) {
+      for (let i = 0; i < formattedMessages.length; i++) {
+        const msg = formattedMessages[i];
+        if (msg.type === 'bot' && (!msg.sources || msg.sources.length === 0)) {
+          // Find the previous user query
+          let userQuery = "";
+          for (let j = i - 1; j >= 0; j--) {
+            if (formattedMessages[j].type === 'user') {
+              userQuery = formattedMessages[j].content;
+              break;
+            }
+          }
+          if (userQuery) {
+            const query = userQuery.toLowerCase();
+            const matched = dummyData.filter(item => {
+              if (!item) return false;
+              const keywords = typeof item.keywords === 'string' 
+                ? item.keywords.split(",").map(k => k.trim().toLowerCase()) 
+                : Array.isArray(item.keywords) ? item.keywords.map(k => String(k).trim().toLowerCase()) : [];
+              const incident = typeof item.incident === 'string' ? item.incident.toLowerCase() : "";
+              const description = typeof item.description === 'string' ? item.description.toLowerCase() : "";
+              const category = typeof item.category === 'string' ? item.category.toLowerCase() : "";
+              
+              return keywords.some(kw => query.includes(kw)) || 
+                     incident.includes(query) || 
+                     description.includes(query) ||
+                     category.includes(query);
+            });
+            
+            msg.sources = matched.map((item, idx) => ({
+              text: `${item.id || ''} | ${item.incident || ''} | ${item.category || ''} | ${item.keywords || ''} | ${item.description || ''} | ${item.resolution || ''}`,
+              similarity_score: 0.2 + (idx * 0.05)
+            }));
+          }
+        }
+      }
+    }
+
+    messages.value = formattedMessages;
   } catch (error) {
     messages.value = [
       {
@@ -230,15 +275,75 @@ const handleSendMessage = async (e) => {
 
     // Add bot response to chat
     if (response && response.response) {
+      let sources = response.sources || response.full_sources || [];
+      
+      // Fallback local search dummy data if sources empty for AP2T
+      if (hasRole('AP2T') && sources.length === 0) {
+        const query = userMessage.toLowerCase();
+        const matched = dummyData.filter(item => {
+          if (!item) return false;
+          const keywords = typeof item.keywords === 'string' 
+            ? item.keywords.split(",").map(k => k.trim().toLowerCase()) 
+            : Array.isArray(item.keywords) ? item.keywords.map(k => String(k).trim().toLowerCase()) : [];
+          const incident = typeof item.incident === 'string' ? item.incident.toLowerCase() : "";
+          const description = typeof item.description === 'string' ? item.description.toLowerCase() : "";
+          const category = typeof item.category === 'string' ? item.category.toLowerCase() : "";
+          
+          return keywords.some(kw => query.includes(kw)) || 
+                 incident.includes(query) || 
+                 description.includes(query) ||
+                 category.includes(query);
+        });
+        
+        sources = matched.map((item, idx) => ({
+          text: `${item.id || ''} | ${item.incident || ''} | ${item.category || ''} | ${item.keywords || ''} | ${item.description || ''} | ${item.resolution || ''}`,
+          similarity_score: 0.2 + (idx * 0.05)
+        }));
+      }
+
       messages.value.push({
         type: "bot",
         content: response.response,
         timestamp: new Date(),
-        sources: response.sources || response.full_sources || [],
+        sources: sources,
       });
     }
     conversationId.value = response.conversation_id;
   } catch (error) {
+    // If API fails, check if we can simulate response for AP2T role using dummy data
+    if (hasRole('AP2T')) {
+      const query = userMessage.toLowerCase();
+      const matched = dummyData.filter(item => {
+        if (!item) return false;
+        const keywords = typeof item.keywords === 'string' 
+          ? item.keywords.split(",").map(k => k.trim().toLowerCase()) 
+          : Array.isArray(item.keywords) ? item.keywords.map(k => String(k).trim().toLowerCase()) : [];
+        const incident = typeof item.incident === 'string' ? item.incident.toLowerCase() : "";
+        const description = typeof item.description === 'string' ? item.description.toLowerCase() : "";
+        const category = typeof item.category === 'string' ? item.category.toLowerCase() : "";
+        
+        return keywords.some(kw => query.includes(kw)) || 
+               incident.includes(query) || 
+               description.includes(query) ||
+               category.includes(query);
+      });
+      
+      if (matched.length > 0) {
+        const sources = matched.map((item, idx) => ({
+          text: `${item.id || ''} | ${item.incident || ''} | ${item.category || ''} | ${item.keywords || ''} | ${item.description || ''} | ${item.resolution || ''}`,
+          similarity_score: 0.2 + (idx * 0.05)
+        }));
+        
+        messages.value.push({
+          type: "bot",
+          content: "Berikut adalah hasil identifikasi incident berdasarkan basis data pengetahuan dummy lokal kami yang cocok dengan pertanyaan Anda.",
+          timestamp: new Date(),
+          sources: sources,
+        });
+        return;
+      }
+    }
+    
     // Add error message to chat
     messages.value.push({
       type: "error",
@@ -345,6 +450,66 @@ const handlePreviewDocument = async (source) => {
 const hanldeRefreshChat = async () => {
   await initialize();
 }
+const parseTicketsFromSource = (source) => {
+  const text = source.text || "";
+  const lines = text.split("\n");
+  const tickets = [];
+  
+  lines.forEach((line) => {
+    const parts = line.split("|").map(p => p.trim());
+    if (parts.length >= 2) {
+      const id = parts[0] || "";
+      const incident = parts[1] || "";
+      const category = parts[2] || "";
+      const keywords = parts[3] || "";
+      const description = parts[4] || "";
+      const resolution = parts[5] || "";
+      
+      // Ignore header row or empty IDs
+      if (!id || id.toLowerCase() === 'id' || incident.toLowerCase() === 'incident') {
+        return;
+      }
+      
+      let displayPercent = 48; // fallback
+      if (source.similarity_score !== undefined) {
+        const s = parseFloat(source.similarity_score);
+        // Map similarity score to a nice percentage match
+        displayPercent = Math.max(30, Math.min(98, Math.round((1.2 - s) * 70)));
+      }
+      
+      tickets.push({
+        id: id.startsWith("#") ? id : `#${id}`,
+        incident,
+        category,
+        keywords,
+        description,
+        resolution,
+        percent: displayPercent
+      });
+    }
+  });
+  
+  return tickets;
+};
+
+const getUniqueTicketsFromMessage = (message) => {
+  if (!message.sources || message.sources.length === 0) return [];
+  
+  const allTickets = [];
+  const seenIds = new Set();
+  
+  message.sources.forEach((source) => {
+    const tickets = parseTicketsFromSource(source);
+    tickets.forEach((ticket) => {
+      if (!seenIds.has(ticket.id)) {
+        seenIds.add(ticket.id);
+        allTickets.push(ticket);
+      }
+    });
+  });
+  
+  return allTickets.slice(0, 4); // Limit to top 4 tickets
+};
 </script>
 
 <template>
@@ -588,15 +753,15 @@ const hanldeRefreshChat = async () => {
           </div>
 
           <!-- Bot Message -->
-          <div v-else-if="message.type === 'bot'" class="mr-auto">
+          <div v-else-if="message.type === 'bot'" class="mr-auto flex flex-col gap-2 max-w-xl lg:max-w-3xl">
             <div
-              class="bg-mainblue text-black rounded-lg p-3 max-w-xs lg:max-w-md"
+              class="bg-mainblue text-black rounded-lg p-3 max-w-xs lg:max-w-md self-start"
             >
               <div class="text-sm prose prose-slate" v-html="formatChatContent(message.content)"></div>
 
-              <!-- Document Sources -->
+              <!-- Document Sources (Non-AP2T only) -->
               <div
-                v-if="message.sources && message.sources.length > 0"
+                v-if="!hasRole('AP2T') && message.sources && message.sources.length > 0"
                 class="mt-3 pt-3 border-t border-gray-300"
               >
                 <p class="text-xs font-semibold text-gray-600 mb-2">
@@ -615,6 +780,84 @@ const hanldeRefreshChat = async () => {
                 </div>
               </div>
             </div>
+
+            <!-- Toggle Button for AP2T Recommendations -->
+            <button 
+              v-if="hasRole('AP2T') && getUniqueTicketsFromMessage(message).length > 0"
+              @click="message.showRecommendations = message.showRecommendations === false ? true : false"
+              class="flex items-center gap-1.5 px-3 py-1.5 mt-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors cursor-pointer self-start border border-blue-200"
+            >
+              <svg v-if="message.showRecommendations !== false" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+              {{ message.showRecommendations !== false ? 'Sembunyikan Rekomendasi Tiket' : 'Tampilkan Rekomendasi Tiket' }}
+              ({{ getUniqueTicketsFromMessage(message).length }})
+            </button>
+
+            <!-- AP2T Incident Recommendations (AP2T only) -->
+            <div 
+              v-if="hasRole('AP2T') && message.showRecommendations !== false && getUniqueTicketsFromMessage(message).length > 0"
+              class="flex flex-col gap-3 mt-2 w-full max-w-3xl"
+            >
+              <div 
+                v-for="(ticket, idx) in getUniqueTicketsFromMessage(message)" 
+                :key="idx"
+                class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200 text-black animate-fade-in"
+              >
+                <!-- Header: Rank, ID, Category Badge, Match % -->
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                  <span class="bg-gray-100 rounded px-1.5 py-0.5 text-xs text-gray-500 font-bold">
+                    {{ idx + 1 }}
+                  </span>
+                  <span class="font-bold text-teal-600 text-sm">
+                    {{ ticket.incident }}
+                  </span>
+                  
+                  <!-- Category Badge -->
+                  <span 
+                    v-if="ticket.category"
+                    :class="[
+                      'px-2 py-0.5 rounded-full text-xs font-semibold',
+                      ticket.category.includes('PELAYANAN') ? 'bg-emerald-100 text-emerald-800' :
+                      ticket.category.includes('PEMBANGKITAN') ? 'bg-rose-100 text-rose-800' :
+                      ticket.category.includes('ERP') ? 'bg-indigo-100 text-indigo-800' :
+                      'bg-slate-100 text-slate-800'
+                    ]"
+                  >
+                    {{ ticket.category }}
+                  </span>
+                  
+                  <span class="ms-auto text-sm font-semibold text-slate-500">
+                    {{ ticket.percent }}%
+                  </span>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-100 rounded-full h-1.5 mb-3 overflow-hidden">
+                  <div 
+                    class="bg-slate-400 h-1.5 rounded-full transition-all duration-500" 
+                    :style="{ width: `${ticket.percent}%` }"
+                  ></div>
+                </div>
+                
+                <!-- Body: Incident Title + Description -->
+                <p class="text-sm text-slate-700 leading-relaxed">
+                  <strong class="text-slate-900" v-if="ticket.incident">{{ ticket.incident }}. </strong>
+                  {{ ticket.description }}
+                </p>
+                
+                <!-- Detail Resolusi -->
+                <div v-if="ticket.resolution" class="mt-2 pt-2 border-t border-slate-100 text-xs text-slate-500">
+                  <span class="font-semibold text-slate-600">Resolusi: </span>
+                  {{ ticket.resolution }}
+                </div>
+              </div>
+            </div>
+
             <p class="text-xs text-gray-400 mt-1">
               {{ formatTime(message.timestamp) }}
             </p>
@@ -658,7 +901,7 @@ const hanldeRefreshChat = async () => {
           <input
             v-model="currentMessage"
             type="text"
-            placeholder="Tanyakan sesuatu kepada AI.."
+            :placeholder="hasRole('AP2T') ? 'Cari dengan format: id, incident, category, keywords, description, resolution' : 'Tanyakan sesuatu kepada AI..'"
             :disabled="isLoading"
             class="border border-slate-300 bg-mainblue/60 rounded-lg py-1.5 px-4 w-full text-black text-sm focus:border focus:border-mainblue/60 focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
           />

@@ -107,6 +107,7 @@ const handleExpand = () => {
 
       <ul class="text-md mt-4 space-y-1.5">
         <router-link
+          v-if="userRole?.toUpperCase() !== 'AP2T'"
           to="/dashboard"
           class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
@@ -231,6 +232,7 @@ const handleExpand = () => {
           </div>
         </router-link>
         <router-link
+          v-if="userRole?.toUpperCase() !== 'AP2T'"
           to="/user"
           class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
@@ -272,6 +274,7 @@ const handleExpand = () => {
         </router-link>
 
         <router-link
+          v-if="userRole?.toUpperCase() !== 'AP2T'"
           to="/dashboard-sertifikasi"
           class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
@@ -302,6 +305,7 @@ const handleExpand = () => {
         </router-link>
 
         <router-link
+          v-if="userRole?.toUpperCase() !== 'AP2T'"
           to="/talent-management"
           class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
@@ -375,6 +379,7 @@ const handleExpand = () => {
         </router-link>
 
         <router-link
+          v-if="userRole?.toUpperCase() !== 'AP2T'"
           to="/setting"
           class="relative flex items-center p-2 rounded-xl hover:bg-blue-500 group overflow-hidden transition-all duration-300 ease-in-out"
           :class="
@@ -433,7 +438,7 @@ const handleExpand = () => {
       </div>
       <span :hidden="!isExpand" class="ms-2 transition-all duration-300 ease-in-out" style="transition-delay: 300ms">
         <p class="font-bold text-black text-md">{{ useAuth.username }}</p>
-        <p class="text-slate-700/80 text-md">{{useAuth.isAdmin ? "Admin" : "User"}}</p>
+        <p class="text-slate-700/80 text-md">{{ userRole?.toUpperCase() === 'AP2T' ? 'AP2T' : (useAuth.isAdmin ? "Admin" : "User") }}</p>
       </span>
       <svg
         @click="handleLogout"
