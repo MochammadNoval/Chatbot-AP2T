@@ -124,20 +124,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !token) {
     auth.setMessage("Silakan login terlebih dahulu");
     next("/login");
-    return;
-  }
-  
-  if (token && auth.user?.role?.toUpperCase() === 'AP2T') {
-    const allowedPathsForAP2T = ['/chat', '/document', '/profile', '/403', '/login'];
-    const isAllowed = allowedPathsForAP2T.some(path => to.path.startsWith(path));
-    if (!isAllowed) {
-      auth.setMessage("Anda tidak memiliki akses untuk halaman ini");
-      next("/chat");
-      return;
-    }
-  }
-
-  if (to.meta.permissions) {
+  } if (to.meta.permissions) {
     console.log("User:", auth.user)
     console.log("User Permissions:", auth.user?.permissions)
     console.log("Required:", to.meta.permissions)

@@ -59,11 +59,7 @@ const handleLogin = async () => {
     });
     authStore.message = null;
     setTimeout(() => {
-      if (res.userData?.role?.toUpperCase() === "AP2T") {
-        router.push("/chat");
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/dashboard");
     }, 3000);
     isSubmit.value = true;
   } catch (error) {

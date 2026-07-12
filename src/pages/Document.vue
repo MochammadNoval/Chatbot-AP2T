@@ -38,7 +38,7 @@ import Pagination from "../components/Pagination.vue";
 // PERMISSION ///
 import {usePermission} from "../composables/usePermissions"
 import { useFileStores } from "../stores/File.js";
-const {can, hasRole} = usePermission()
+const {can} = usePermission()
 
 const useAuth = useAuthStores();
 const files = useFileStores()
@@ -457,7 +457,7 @@ watch(itemsPerPage, () => {
         </p>
       </router-link>
       <button
-      v-if="can('admin : view') || hasRole('AP2T')"
+      v-if="can('admin : view')"
         @click="
           showModal = true;
           modalType = 'UploadDocument';
@@ -475,20 +475,18 @@ watch(itemsPerPage, () => {
       @search="performSearch"
     />
     <section class="flex items-center gap-4 mt-6">
-      <template v-if="!hasRole('AP2T')">
-        <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
-        <p class="font-semibold text-black">Filter :</p>
-        <div class="flex-1 max-w-md ">
-          <TagSearchFilter
-            :tags="tags"
-            :selectedTags="selectedTagObjects"
-            :isLoading="isFilterLoading"
-            placeholder="Cari atau pilih tag..."
-            @tag-selected="handleTagSelected"
-            @tag-removed="handleTagRemoved"
-          />
-        </div>
-      </template>
+      <FunnelIcon class="size-6 text-slate-500"></FunnelIcon>
+      <p class="font-semibold text-black">Filter :</p>
+      <div class="flex-1 max-w-md ">
+        <TagSearchFilter
+          :tags="tags"
+          :selectedTags="selectedTagObjects"
+          :isLoading="isFilterLoading"
+          placeholder="Cari atau pilih tag..."
+          @tag-selected="handleTagSelected"
+          @tag-removed="handleTagRemoved"
+        />
+      </div>
       
       <!-- Dropdown Rows Per Page -->
       <div class="flex items-center gap-2 ms-auto">
@@ -515,7 +513,7 @@ watch(itemsPerPage, () => {
                 Nama File
               </th>
 
-              <th v-if="!hasRole('AP2T')" class="px-6 py-3 text-left text-sm font-semibold">Tags</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold">Tags</th>
               <th class="px-6 py-3 text-left text-sm font-semibold">Ukuran</th>
               <th class="px-6 py-3 text-left text-sm font-semibold">Tanggal</th>
               <th class="px-6 py-3 text-center text-sm font-semibold">Aksi</th>
@@ -532,7 +530,7 @@ watch(itemsPerPage, () => {
                 {{ document.filename }}
               </td>
 
-              <td v-if="!hasRole('AP2T')" class="px-6 py-2 text-sm text-gray-700">
+              <td class="px-6 py-2 text-sm text-gray-700">
                 <div class="flex gap-2">
                   <span
                     v-for="tag in document.tags"

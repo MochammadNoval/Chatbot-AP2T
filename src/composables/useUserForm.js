@@ -23,7 +23,6 @@ export function useUserForm() {
 
   const showPassword = ref(false);
   const showConfirmPassword = ref(false);
-  const isEditMode = ref(false);
 
   /**
    * Password requirements computed property
@@ -34,16 +33,6 @@ export function useUserForm() {
     hasNumber: /[0-9]/.test(formData.password),
     hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formData.password),
   }));
-
-  // Auto-populate confirmPassword when password is typed (only in Edit mode)
-  watch(
-    () => formData.password,
-    (newVal) => {
-      if (isEditMode.value) {
-        formData.confirmPassword = newVal;
-      }
-    }
-  );
 
   /**
    * Reset form ke state awal
@@ -56,7 +45,6 @@ export function useUserForm() {
     formData.role = "user";
     showPassword.value = false;
     showConfirmPassword.value = false;
-    isEditMode.value = false;
   };
 
   /**
@@ -69,7 +57,6 @@ export function useUserForm() {
       formData.name = userData.name || userData.Nama || "";
       formData.role = userData.role || userData.Role || "user";
       formData.password = ""; // Password dikosongkan untuk edit mode
-      isEditMode.value = true;
     }
   };
 
