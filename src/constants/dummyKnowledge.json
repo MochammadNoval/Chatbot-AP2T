@@ -1,0 +1,34 @@
+[
+  {
+    "id": "3097681",
+    "incident": "AP2T TIDAK MUNCUL DI MENU ISIAN MATERIAL WO",
+    "category": "APLIKASI PELAYANAN PELANGGAN MOBILE",
+    "keywords": "AP2T, material, wo, isian, pelanggan, mobile",
+    "description": "Selamat sore Mohon bantuan agenda berikut tidak muncul di menu Isian Material WO, adapun data pelanggan sbb: 514090512502218039 KOLEKTIF AGUS ARIFIN R1MT 9",
+    "resolution": "Lakukan sinkronisasi ulang data pelanggan pada modul WO dan perbarui cache aplikasi pelanggan."
+  },
+  {
+    "id": "3088530",
+    "incident": "BBO PROPOSE PERHITUNGAN BERBEDA PT. TRIBA ENERGI PERSADA",
+    "category": "APLIKASI PEMBANGKITAN",
+    "keywords": "BBO, perhitungan, pembangkitan, Triba, energi",
+    "description": "Dear TIM BBO, Perbedaan perhitungan di propose perhitungan di BBO PT Triba Energi Persada, mohon bantu disamakan dengan perhitungan manual exc",
+    "resolution": "Perbarui rumus kalkulasi tarif di database pembangkitan untuk menyelaraskan dengan nilai kalkulasi manual."
+  },
+  {
+    "id": "3103864",
+    "incident": "AGO - DAFTAR MATERIAL KE AGO",
+    "category": "ERP LOGISTIC",
+    "keywords": "AGO, material, logistic, sloc, kupang",
+    "description": "Selamat Siang Bapak/Ibu. Mohon untuk dapat mendaftarkan nomor material Di AGO : Sloc : - Kupang (2050) - Oesao (2060) - Soe (2070) - Kefamenanu (2080) - Atambua (2090) -",
+    "resolution": "Daftarkan nomor material ke SLOC lokasi terkait di sistem ERP Logistic dan verifikasi status aktif AGO."
+  },
+  {
+    "id": "3107188",
+    "incident": "Selisih Perhitungan BAPH PLTU Sebalang Konsorsium SAE-DBU",
+    "category": "APLIKASI PEMBANGKITAN",
+    "keywords": "BAPH, PLTU, Sebalang, selisih, hitung, sae",
+    "description": "Dear Pak/Ibu, Untuk PLTU Sebalang ada selisih perhitungan BAPH Lot 1 Jan , Lot 1 - 2 Feb dan Lot 1 - 2 Mar (ID Pengiriman 79050, 79",
+    "resolution": "Lakukan rekonsiliasi data pengiriman BAPH Lot 1 & Lot 2 bersama tim keuangan konsorsium."
+  }
+]

@@ -8,5 +8,9 @@ export const ROLE_PERMISSIONS = {
 
     user: [
         'user : view'
+    ],
+
+    AP2T: [
+        'user : view'
     ]
 }

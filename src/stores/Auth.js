@@ -90,7 +90,10 @@ export const useAuthStores = defineStore("auth", {
     },
 
     setUser(userData) {
-      const permissions = ROLE_PERMISSIONS[userData.role] || [];
+      const roleKey = Object.keys(ROLE_PERMISSIONS).find(
+        (k) => k.toLowerCase() === (userData.role || "").toLowerCase()
+      ) || userData.role;
+      const permissions = ROLE_PERMISSIONS[roleKey] || [];
       this.user = {
         ...userData, permissions
       }
@@ -144,6 +147,15 @@ export const useAuthStores = defineStore("auth", {
       this.refresh_token = localStorage.getItem("refresh_token");
       const expiryTime = localStorage.getItem("token_expiry_time");
       this.token_expiry_time = expiryTime ? parseInt(expiryTime) : null;
+
+      // Re-populate permissions dynamically on initialization
+      if (this.user && this.user.role) {
+        const roleKey = Object.keys(ROLE_PERMISSIONS).find(
+          (k) => k.toLowerCase() === (this.user.role || "").toLowerCase()
+        ) || this.user.role;
+        this.user.permissions = ROLE_PERMISSIONS[roleKey] || [];
+        this.isAdmin = this.user.role.toLowerCase() === 'admin';
+      }
     },
   },
 });

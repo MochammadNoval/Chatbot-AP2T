@@ -9,7 +9,7 @@ export function usePermission() {
     }
 
     const hasRole = (role) => {
-        return auth.user?.role == role
+        return auth.user?.role?.toUpperCase() === role?.toUpperCase();
     }
 
     const canAny = (permission) => {

@@ -13,8 +13,10 @@ import { getTagGroups, getTags } from "../services/Tags";
 import { useAuthStores } from "../stores/Auth";
 import Swal from "sweetalert2";
 import axios from "axios";
+import { usePermission } from "../composables/usePermissions";
 
 const useAuth = useAuthStores();
+const { hasRole } = usePermission();
 
 const props = defineProps({
   isOpen: {
@@ -174,6 +176,19 @@ const onDrop = (event) => {
   if (!files.length) return;
 
   if(files && files[0]){
+    if (hasRole('AP2T')) {
+      const fileName = files[0].name;
+      const fileExt = fileName.split('.').pop().toLowerCase();
+      if (fileExt !== 'xlsx' && fileExt !== 'xls') {
+        toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: "Hanya file Excel (.xlsx, .xls) yang diperbolehkan",
+          life: 3000,
+        });
+        return;
+      }
+    }
     formData.value.file = files[0]; // ambil file perta ma
     formData.value.filename = "";
     // Reset input value
@@ -186,6 +201,20 @@ const onDrop = (event) => {
 const handleFileChange = (event) => {
   const files = event.target.files;
   if (files && files[0]) {
+    if (hasRole('AP2T')) {
+      const fileName = files[0].name;
+      const fileExt = fileName.split('.').pop().toLowerCase();
+      if (fileExt !== 'xlsx' && fileExt !== 'xls') {
+        toast.add({
+          severity: "error",
+          summary: "Error",
+          detail: "Hanya file Excel (.xlsx, .xls) yang diperbolehkan",
+          life: 3000,
+        });
+        event.target.value = "";
+        return;
+      }
+    }
     formData.value.file = files[0];
     formData.value.filename = "";
     // Reset input value so user can select the same file again if needed
@@ -288,6 +317,19 @@ const handleUpload = () => {
       life: 3000,
     });
     return; // ⬅️ PENTING: hentikan function
+  }
+
+  if (hasRole('AP2T')) {
+    const fileExt = formData.value.file.name.split('.').pop().toLowerCase();
+    if (fileExt !== 'xlsx' && fileExt !== 'xls') {
+      toast.add({
+        severity: "error",
+        summary: "Error",
+        detail: "Hanya file Excel (.xlsx, .xls) yang diperbolehkan",
+        life: 3000,
+      });
+      return;
+    }
   }
 
   if (formData.value.file.size > 100 * 1024 * 1024) {
@@ -525,20 +567,23 @@ const closeModal = () => {
             class="hidden"
             aria-label="Upload file"
             id="uploadFile"
+            :accept="hasRole('AP2T') ? '.xlsx, .xls' : '.pdf'"
           />
           <div class="pointer-events-none">
             <p class="text-gray-600 text-sm font-semibold">
               {{
                 formData.file
                   ? formData.file.name
-                  : "Drag atau click upilih file"
+                  : "Drag atau click pilih file"
               }}
             </p>
             <p class="text-gray-400 text-xs mt-1">
               {{
                 formData.file
                   ? `${(formData.file.size / 1024 / 1024).toFixed(2)} MB`
-                  : "Max size 100MB & format PDF"
+                  : hasRole('AP2T')
+                    ? "Max size 100MB & format Excel (.xlsx, .xls)"
+                    : "Max size 100MB & format PDF"
               }}
             </p>
           </div>
@@ -571,12 +616,12 @@ const closeModal = () => {
           class="w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p class="text-xs text-gray-500 mt-1">
-          Format: PDF akan ditambahkan otomatis
+          Format: {{ hasRole('AP2T') ? 'Excel' : 'PDF' }} akan ditambahkan otomatis
         </p>
       </div>
 
-      <!-- Group Tags -->
-      <div>
+      <!-- Group Tags (Sembunyikan untuk AP2T) -->
+      <div v-if="!hasRole('AP2T')">
         <!-- Selected group tags display -->
         <div v-if="selectedGroupTag.length > 0" class="mb-3 ">
           <div class="flex flex-wrap gap-2">
@@ -687,8 +732,8 @@ const closeModal = () => {
         </p>
 
       </div>
-            <!-- AI Index Toggle -->
-      <div class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <!-- AI Index Toggle (Sembunyikan untuk AP2T) -->
+      <div v-if="!hasRole('AP2T')" class="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <div class="flex flex-col">
           <label class="block text-sm font-semibold text-gray-700 mb-1">
             AI Indexing
